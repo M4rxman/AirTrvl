@@ -5,7 +5,7 @@
 #include "csv-parser/csv.hpp"
 #include <fstream>
 
-    std::vector<Airport> AirportDataReader::readAirportsFromFile(const std::string& filepath) {
+std::vector<Airport> AirportDataReader::readAirportsFromFile(const std::string& filepath) {
     std::vector<Airport> airports;
     std::ifstream file(filepath);
 
