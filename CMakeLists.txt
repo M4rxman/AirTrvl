@@ -7,7 +7,7 @@ include_directories(.)
 include_directories(src)
 
 add_executable(AirTrvl
-        src/Graph.h
-        src/airports.h
-        src/airports.cpp
+        src/typesOfData/Graph.h
+        src/typesOfData/airports.cpp
+        src/typesOfData/airports.h
 )

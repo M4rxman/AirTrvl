@@ -22,8 +22,8 @@ std::vector<Airport> AirportDataReader::readAirportsFromFile(const std::string& 
             airport.name = row["Name"].get<std::string>();
             airport.city = row["City"].get<std::string>();
             airport.country = row["Country"].get<std::string>();
-            airport.latitude = row["Latitude"].get<double>();
-            airport.longitude = row["Longitude"].get<double>();
+            airport.position.latitude = row["Latitude"].get<double>();
+            airport.position.longitude = row["Longitude"].get<double>();
 
             airports.push_back(airport);
         }

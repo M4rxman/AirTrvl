@@ -7,14 +7,14 @@
 
 #include<string>
 #include<vector>
+#include "position.h"
 
 struct Airport {
     std::string code;
     std::string name;
     std::string city;
     std::string country;
-    double latitude;
-    double longitude;
+    Position position;  
 };
 class AirportDataReader {
 public:
