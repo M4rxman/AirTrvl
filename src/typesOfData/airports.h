@@ -17,6 +17,7 @@ struct Airport {
     Position position;  
 };
 class AirportDataReader {
+    std::vector<Airport> _airpots;
 public:
     std::vector<Airport> readAirportsFromFile(const std::string& filepath);
 };

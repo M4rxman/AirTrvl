@@ -10,4 +10,6 @@ struct Position {
     double longitude;
 };
 
+
+
 #endif //AIRTRVL_POSITION_H

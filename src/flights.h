@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-struct Flight {
+struct Flight { // this is our edge
     std::string source;
     std::string target;
     std::string airline;
