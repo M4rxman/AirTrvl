@@ -1,9 +1,9 @@
 #include <string>
-#include "typesOfData/airports.h"
+#include "typesOfData/AirManager.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    string path = "C:\\Users\\alex2\\CLionProjects\\AirTrvl\\data\\airports.csv";
+    string path = "AirTrvl\\data\\airports.csv";
     return 0;
 }

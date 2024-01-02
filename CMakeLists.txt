@@ -9,8 +9,9 @@ include_directories(data)
 
 add_executable(AirTrvl
         src/typesOfData/Graph.h
-        src/typesOfData/airports.cpp
-        src/typesOfData/airports.h
-        src/flights.h
-        src/flights.cpp
+        src/typesOfData/AirManager.h
+        src/typesOfData/flights.h
+        src/typesOfData/flights.cpp
+        src/csv.hpp
+        csv-parser-master/csv-parser-master/single_include/csv.hpp
 )
