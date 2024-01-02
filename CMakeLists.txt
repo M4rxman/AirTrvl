@@ -12,5 +12,4 @@ add_executable(AirTrvl
         src/typesOfData/flights.h
         src/typesOfData/flights.cpp
         src/typesOfData/AirTravelGraph.h
-        src/typesOfData/csv.hpp
 )

@@ -4,30 +4,28 @@
 #include "flights.h"
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 bool FlightManager::loadFlights(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        return false; // File not opened
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return false;
     }
-    // Clear existing flights if needed
-    flights.clear();
+
+    flights.clear(); // Clear the vector before reading
 
     std::string line;
-    std::getline(file, line); // Read and discard header
-
     while (std::getline(file, line)) {
-        std::istringstream linestream(line);
-        std::string source, target, airline;
+        std::istringstream iss(line);
+        Flight flight;
 
-        if (std::getline(linestream, source, ',') &&
-            std::getline(linestream, target, ',') &&
-            std::getline(linestream, airline, ',')) {
-            // Create a Flight object and add it to flights vector
-            flights.push_back({source, target, airline});
+        if (std::getline(iss, flight.source, ',') &&
+            std::getline(iss, flight.target, ',') &&
+            std::getline(iss, flight.airline, ',')) {
+            flights.push_back(flight);
         } else {
-            // Error in line format
-            return false;
+            std::cerr << "Error parsing line: " << line << std::endl;
         }
     }
 

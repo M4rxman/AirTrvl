@@ -9,6 +9,8 @@
 #include <iostream>
 
 struct Position {
+    string str_latitude;
+    string str_longitude;
     double latitude;
     double longitude;
 

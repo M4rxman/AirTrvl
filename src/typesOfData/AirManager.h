@@ -28,12 +28,12 @@ public:
     std::vector<Airline> airlines;
 
     bool readData() {
-        if (!readAirports("airports.csv", airports)) {
+        if (!readAirports("data/airports.csv", airports)) {
             std::cerr << "Error reading airports data." << std::endl;
             return false;
         }
 
-        if (!readAirlines("airlines.csv", airlines)) {
+        if (!readAirlines("data/airlines.csv", airlines)) {
             std::cerr << "Error reading airlines data." << std::endl;
             return false;
         }
@@ -60,18 +60,10 @@ private:
             if (std::getline(iss, airport.code, ',') &&
                 std::getline(iss, airport.name, ',') &&
                 std::getline(iss, airport.city, ',') &&
-                std::getline(iss, airport.country, ',')) {
-
-                // Convert latitude and longitude from string to double
-                std::string latitudeStr, longitudeStr;
-                if (std::getline(iss, latitudeStr, ',') &&
-                    std::getline(iss, longitudeStr, ',')) {
-                    airport.position.latitude = std::stod(latitudeStr);
-                    airport.position.longitude = std::stod(longitudeStr);
-                    data.push_back(airport);
-                } else {
-                    std::cerr << "Error parsing latitude and longitude in line: " << line << std::endl;
-                }
+                std::getline(iss, airport.country, ',') &&
+                std::getline(iss, airport.position.str_latitude, ',') &&
+                std::getline(iss, airport.position.str_longitude, ',')) {
+                airports.emplace_back(airport);
             } else {
                 std::cerr << "Error parsing line: " << line << std::endl;
             }
