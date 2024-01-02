@@ -37,15 +37,21 @@ public:
 
     // Function to load data from CSV files and populate the graph
     bool loadData(const std::string& airportsFile, const std::string& airlinesFile, const std::string& flightsFile) {
-        FlightManager flightManager;
         AirManager airManager;
+
+        if (!airManager.readData()) {
+            return false;  // Error reading data
+        }
+
+        addAirports(airManager.airports);
+        addAirlines(airManager.airlines);
+
+        FlightManager flightManager;
 
         if (!flightManager.loadFlights(flightsFile)) {
             return false;  // Error loading flights data
         }
 
-        addAirports(airManager.airports);
-        addAirlines(airManager.airlines);
         addFlights(flightManager.flights);
 
         return true;
@@ -53,4 +59,3 @@ public:
 
     // Other functions related to the graph can be added here
 };
-

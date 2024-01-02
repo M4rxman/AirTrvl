@@ -93,7 +93,7 @@ SOFTWARE.
 #define MIO_PAGE_HEADER
 
 #ifdef _WIN32
-#include <windows.h>
+# include <windows.h>
 #else
 # include <unistd.h>
 #endif
@@ -104,11 +104,11 @@ namespace mio {
  * This is used by `basic_mmap` to determine whether to create a read-only or
  * a read-write memory mapping.
  */
-enum class access_mode
-{
-    read,
-    write
-};
+    enum class access_mode
+    {
+        read,
+        write
+    };
 
 /**
  * Determines the operating system's page allocation granularity.
@@ -117,32 +117,32 @@ enum class access_mode
  * to determine the page size, caches the value, and returns it. Any subsequent call to
  * this function serves the cached value, so no further syscalls are made.
  */
-inline size_t page_size()
-{
-    static const size_t page_size = []
+    inline size_t page_size()
     {
+        static const size_t page_size = []
+        {
 #ifdef _WIN32
-        SYSTEM_INFO SystemInfo;
-        GetSystemInfo(&SystemInfo);
-        return SystemInfo.dwAllocationGranularity;
+            SYSTEM_INFO SystemInfo;
+            GetSystemInfo(&SystemInfo);
+            return SystemInfo.dwAllocationGranularity;
 #else
-        return sysconf(_SC_PAGE_SIZE);
+            return sysconf(_SC_PAGE_SIZE);
 #endif
-    }();
-    return page_size;
-}
+        }();
+        return page_size;
+    }
 
 /**
  * Alligns `offset` to the operating's system page size such that it subtracts the
  * difference until the nearest page boundary before `offset`, or does nothing if
  * `offset` is already page aligned.
  */
-inline size_t make_offset_page_aligned(size_t offset) noexcept
-{
-    const size_t page_size_ = page_size();
-    // Use integer division to round down to the nearest page alignment.
-    return offset / page_size_ * page_size_;
-}
+    inline size_t make_offset_page_aligned(size_t offset) noexcept
+    {
+        const size_t page_size_ = page_size();
+        // Use integer division to round down to the nearest page alignment.
+        return offset / page_size_ * page_size_;
+    }
 
 } // namespace mio
 
@@ -167,409 +167,409 @@ namespace mio {
 
 // This value may be provided as the `length` parameter to the constructor or
 // `map`, in which case a memory mapping of the entire file is created.
-enum { map_entire_file = 0 };
+    enum { map_entire_file = 0 };
 
 #ifdef _WIN32
-using file_handle_type = HANDLE;
+    using file_handle_type = HANDLE;
 #else
-using file_handle_type = int;
+    using file_handle_type = int;
 #endif
 
 // This value represents an invalid file handle type. This can be used to
 // determine whether `basic_mmap::file_handle` is valid, for example.
-const static file_handle_type invalid_handle = INVALID_HANDLE_VALUE;
+    const static file_handle_type invalid_handle = INVALID_HANDLE_VALUE;
 
-template<access_mode AccessMode, typename ByteT>
-struct basic_mmap
-{
-    using value_type = ByteT;
-    using size_type = size_t;
-    using reference = value_type&;
-    using const_reference = const value_type&;
-    using pointer = value_type*;
-    using const_pointer = const value_type*;
-    using difference_type = std::ptrdiff_t;
-    using iterator = pointer;
-    using const_iterator = const_pointer;
-    using reverse_iterator = std::reverse_iterator<iterator>;
-    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-    using iterator_category = std::random_access_iterator_tag;
-    using handle_type = file_handle_type;
+    template<access_mode AccessMode, typename ByteT>
+    struct basic_mmap
+    {
+        using value_type = ByteT;
+        using size_type = size_t;
+        using reference = value_type&;
+        using const_reference = const value_type&;
+        using pointer = value_type*;
+        using const_pointer = const value_type*;
+        using difference_type = std::ptrdiff_t;
+        using iterator = pointer;
+        using const_iterator = const_pointer;
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+        using iterator_category = std::random_access_iterator_tag;
+        using handle_type = file_handle_type;
 
-    static_assert(sizeof(ByteT) == sizeof(char), "ByteT must be the same size as char.");
+        static_assert(sizeof(ByteT) == sizeof(char), "ByteT must be the same size as char.");
 
-private:
-    // Points to the first requested byte, and not to the actual start of the mapping.
-    pointer data_ = nullptr;
+    private:
+        // Points to the first requested byte, and not to the actual start of the mapping.
+        pointer data_ = nullptr;
 
-    // Length--in bytes--requested by user (which may not be the length of the
-    // full mapping) and the length of the full mapping.
-    size_type length_ = 0;
-    size_type mapped_length_ = 0;
+        // Length--in bytes--requested by user (which may not be the length of the
+        // full mapping) and the length of the full mapping.
+        size_type length_ = 0;
+        size_type mapped_length_ = 0;
 
-    // Letting user map a file using both an existing file handle and a path
-    // introcudes some complexity (see `is_handle_internal_`).
-    // On POSIX, we only need a file handle to create a mapping, while on
-    // Windows systems the file handle is necessary to retrieve a file mapping
-    // handle, but any subsequent operations on the mapped region must be done
-    // through the latter.
-    handle_type file_handle_ = INVALID_HANDLE_VALUE;
+        // Letting user map a file using both an existing file handle and a path
+        // introcudes some complexity (see `is_handle_internal_`).
+        // On POSIX, we only need a file handle to create a mapping, while on
+        // Windows systems the file handle is necessary to retrieve a file mapping
+        // handle, but any subsequent operations on the mapped region must be done
+        // through the latter.
+        handle_type file_handle_ = INVALID_HANDLE_VALUE;
 #ifdef _WIN32
-    handle_type file_mapping_handle_ = INVALID_HANDLE_VALUE;
+        handle_type file_mapping_handle_ = INVALID_HANDLE_VALUE;
 #endif
 
-    // Letting user map a file using both an existing file handle and a path
-    // introcudes some complexity in that we must not close the file handle if
-    // user provided it, but we must close it if we obtained it using the
-    // provided path. For this reason, this flag is used to determine when to
-    // close `file_handle_`.
-    bool is_handle_internal_;
+        // Letting user map a file using both an existing file handle and a path
+        // introcudes some complexity in that we must not close the file handle if
+        // user provided it, but we must close it if we obtained it using the
+        // provided path. For this reason, this flag is used to determine when to
+        // close `file_handle_`.
+        bool is_handle_internal_;
 
-public:
-    /**
-     * The default constructed mmap object is in a non-mapped state, that is,
-     * any operation that attempts to access nonexistent underlying data will
-     * result in undefined behaviour/segmentation faults.
-     */
-    basic_mmap() = default;
+    public:
+        /**
+         * The default constructed mmap object is in a non-mapped state, that is,
+         * any operation that attempts to access nonexistent underlying data will
+         * result in undefined behaviour/segmentation faults.
+         */
+        basic_mmap() = default;
 
 #ifdef __cpp_exceptions
-    /**
-     * The same as invoking the `map` function, except any error that may occur
-     * while establishing the mapping is wrapped in a `std::system_error` and is
-     * thrown.
-     */
-    template<typename String>
-    basic_mmap(const String& path, const size_type offset = 0, const size_type length = map_entire_file)
-    {
-        std::error_code error;
-        map(path, offset, length, error);
-        if(error) { throw std::system_error(error); }
-    }
+        /**
+         * The same as invoking the `map` function, except any error that may occur
+         * while establishing the mapping is wrapped in a `std::system_error` and is
+         * thrown.
+         */
+        template<typename String>
+        basic_mmap(const String& path, const size_type offset = 0, const size_type length = map_entire_file)
+        {
+            std::error_code error;
+            map(path, offset, length, error);
+            if(error) { throw std::system_error(error); }
+        }
 
-    /**
-     * The same as invoking the `map` function, except any error that may occur
-     * while establishing the mapping is wrapped in a `std::system_error` and is
-     * thrown.
-     */
-    basic_mmap(const handle_type handle, const size_type offset = 0, const size_type length = map_entire_file)
-    {
-        std::error_code error;
-        map(handle, offset, length, error);
-        if(error) { throw std::system_error(error); }
-    }
+        /**
+         * The same as invoking the `map` function, except any error that may occur
+         * while establishing the mapping is wrapped in a `std::system_error` and is
+         * thrown.
+         */
+        basic_mmap(const handle_type handle, const size_type offset = 0, const size_type length = map_entire_file)
+        {
+            std::error_code error;
+            map(handle, offset, length, error);
+            if(error) { throw std::system_error(error); }
+        }
 #endif // __cpp_exceptions
 
-    /**
-     * `basic_mmap` has single-ownership semantics, so transferring ownership
-     * may only be accomplished by moving the object.
-     */
-    basic_mmap(const basic_mmap&) = delete;
-    basic_mmap(basic_mmap&&);
-    basic_mmap& operator=(const basic_mmap&) = delete;
-    basic_mmap& operator=(basic_mmap&&);
+        /**
+         * `basic_mmap` has single-ownership semantics, so transferring ownership
+         * may only be accomplished by moving the object.
+         */
+        basic_mmap(const basic_mmap&) = delete;
+        basic_mmap(basic_mmap&&);
+        basic_mmap& operator=(const basic_mmap&) = delete;
+        basic_mmap& operator=(basic_mmap&&);
 
-    /**
-     * If this is a read-write mapping, the destructor invokes sync. Regardless
-     * of the access mode, unmap is invoked as a final step.
-     */
-    ~basic_mmap();
+        /**
+         * If this is a read-write mapping, the destructor invokes sync. Regardless
+         * of the access mode, unmap is invoked as a final step.
+         */
+        ~basic_mmap();
 
-    /**
-     * On UNIX systems 'file_handle' and 'mapping_handle' are the same. On Windows,
-     * however, a mapped region of a file gets its own handle, which is returned by
-     * 'mapping_handle'.
-     */
-    handle_type file_handle() const noexcept { return file_handle_; }
-    handle_type mapping_handle() const noexcept;
+        /**
+         * On UNIX systems 'file_handle' and 'mapping_handle' are the same. On Windows,
+         * however, a mapped region of a file gets its own handle, which is returned by
+         * 'mapping_handle'.
+         */
+        handle_type file_handle() const noexcept { return file_handle_; }
+        handle_type mapping_handle() const noexcept;
 
-    /** Returns whether a valid memory mapping has been created. */
-    bool is_open() const noexcept { return file_handle_ != invalid_handle; }
+        /** Returns whether a valid memory mapping has been created. */
+        bool is_open() const noexcept { return file_handle_ != invalid_handle; }
 
-    /**
-     * Returns true if no mapping was established, that is, conceptually the
-     * same as though the length that was mapped was 0. This function is
-     * provided so that this class has Container semantics.
-     */
-    bool empty() const noexcept { return length() == 0; }
+        /**
+         * Returns true if no mapping was established, that is, conceptually the
+         * same as though the length that was mapped was 0. This function is
+         * provided so that this class has Container semantics.
+         */
+        bool empty() const noexcept { return length() == 0; }
 
-    /** Returns true if a mapping was established. */
-    bool is_mapped() const noexcept;
+        /** Returns true if a mapping was established. */
+        bool is_mapped() const noexcept;
 
-    /**
-     * `size` and `length` both return the logical length, i.e. the number of bytes
-     * user requested to be mapped, while `mapped_length` returns the actual number of
-     * bytes that were mapped which is a multiple of the underlying operating system's
-     * page allocation granularity.
-     */
-    size_type size() const noexcept { return length(); }
-    size_type length() const noexcept { return length_; }
-    size_type mapped_length() const noexcept { return mapped_length_; }
+        /**
+         * `size` and `length` both return the logical length, i.e. the number of bytes
+         * user requested to be mapped, while `mapped_length` returns the actual number of
+         * bytes that were mapped which is a multiple of the underlying operating system's
+         * page allocation granularity.
+         */
+        size_type size() const noexcept { return length(); }
+        size_type length() const noexcept { return length_; }
+        size_type mapped_length() const noexcept { return mapped_length_; }
 
-    /** Returns the offset relative to the start of the mapping. */
-    size_type mapping_offset() const noexcept
-    {
-        return mapped_length_ - length_;
-    }
+        /** Returns the offset relative to the start of the mapping. */
+        size_type mapping_offset() const noexcept
+        {
+            return mapped_length_ - length_;
+        }
 
-    /**
-     * Returns a pointer to the first requested byte, or `nullptr` if no memory mapping
-     * exists.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > pointer data() noexcept { return data_; }
-    const_pointer data() const noexcept { return data_; }
+        /**
+         * Returns a pointer to the first requested byte, or `nullptr` if no memory mapping
+         * exists.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > pointer data() noexcept { return data_; }
+        const_pointer data() const noexcept { return data_; }
 
-    /**
-     * Returns an iterator to the first requested byte, if a valid memory mapping
-     * exists, otherwise this function call is undefined behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > iterator begin() noexcept { return data(); }
-    const_iterator begin() const noexcept { return data(); }
-    const_iterator cbegin() const noexcept { return data(); }
+        /**
+         * Returns an iterator to the first requested byte, if a valid memory mapping
+         * exists, otherwise this function call is undefined behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > iterator begin() noexcept { return data(); }
+        const_iterator begin() const noexcept { return data(); }
+        const_iterator cbegin() const noexcept { return data(); }
 
-    /**
-     * Returns an iterator one past the last requested byte, if a valid memory mapping
-     * exists, otherwise this function call is undefined behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > iterator end() noexcept { return data() + length(); }
-    const_iterator end() const noexcept { return data() + length(); }
-    const_iterator cend() const noexcept { return data() + length(); }
+        /**
+         * Returns an iterator one past the last requested byte, if a valid memory mapping
+         * exists, otherwise this function call is undefined behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > iterator end() noexcept { return data() + length(); }
+        const_iterator end() const noexcept { return data() + length(); }
+        const_iterator cend() const noexcept { return data() + length(); }
 
-    /**
-     * Returns a reverse iterator to the last memory mapped byte, if a valid
-     * memory mapping exists, otherwise this function call is undefined
-     * behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
-    const_reverse_iterator rbegin() const noexcept
-    { return const_reverse_iterator(end()); }
-    const_reverse_iterator crbegin() const noexcept
-    { return const_reverse_iterator(end()); }
+        /**
+         * Returns a reverse iterator to the last memory mapped byte, if a valid
+         * memory mapping exists, otherwise this function call is undefined
+         * behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+        const_reverse_iterator rbegin() const noexcept
+        { return const_reverse_iterator(end()); }
+        const_reverse_iterator crbegin() const noexcept
+        { return const_reverse_iterator(end()); }
 
-    /**
-     * Returns a reverse iterator past the first mapped byte, if a valid memory
-     * mapping exists, otherwise this function call is undefined behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
-    const_reverse_iterator rend() const noexcept
-    { return const_reverse_iterator(begin()); }
-    const_reverse_iterator crend() const noexcept
-    { return const_reverse_iterator(begin()); }
+        /**
+         * Returns a reverse iterator past the first mapped byte, if a valid memory
+         * mapping exists, otherwise this function call is undefined behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+        const_reverse_iterator rend() const noexcept
+        { return const_reverse_iterator(begin()); }
+        const_reverse_iterator crend() const noexcept
+        { return const_reverse_iterator(begin()); }
 
-    /**
-     * Returns a reference to the `i`th byte from the first requested byte (as returned
-     * by `data`). If this is invoked when no valid memory mapping has been created
-     * prior to this call, undefined behaviour ensues.
-     */
-    reference operator[](const size_type i) noexcept { return data_[i]; }
-    const_reference operator[](const size_type i) const noexcept { return data_[i]; }
+        /**
+         * Returns a reference to the `i`th byte from the first requested byte (as returned
+         * by `data`). If this is invoked when no valid memory mapping has been created
+         * prior to this call, undefined behaviour ensues.
+         */
+        reference operator[](const size_type i) noexcept { return data_[i]; }
+        const_reference operator[](const size_type i) const noexcept { return data_[i]; }
 
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
-     * reason is reported via `error` and the object remains in a state as if this
-     * function hadn't been called.
-     *
-     * `path`, which must be a path to an existing file, is used to retrieve a file
-     * handle (which is closed when the object destructs or `unmap` is called), which is
-     * then used to memory map the requested region. Upon failure, `error` is set to
-     * indicate the reason and the object remains in an unmapped state.
-     *
-     * `offset` is the number of bytes, relative to the start of the file, where the
-     * mapping should begin. When specifying it, there is no need to worry about
-     * providing a value that is aligned with the operating system's page allocation
-     * granularity. This is adjusted by the implementation such that the first requested
-     * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
-     * `offset` from the start of the file.
-     *
-     * `length` is the number of bytes to map. It may be `map_entire_file`, in which
-     * case a mapping of the entire file is created.
-     */
-    template<typename String>
-    void map(const String& path, const size_type offset,
-            const size_type length, std::error_code& error);
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
+         * reason is reported via `error` and the object remains in a state as if this
+         * function hadn't been called.
+         *
+         * `path`, which must be a path to an existing file, is used to retrieve a file
+         * handle (which is closed when the object destructs or `unmap` is called), which is
+         * then used to memory map the requested region. Upon failure, `error` is set to
+         * indicate the reason and the object remains in an unmapped state.
+         *
+         * `offset` is the number of bytes, relative to the start of the file, where the
+         * mapping should begin. When specifying it, there is no need to worry about
+         * providing a value that is aligned with the operating system's page allocation
+         * granularity. This is adjusted by the implementation such that the first requested
+         * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
+         * `offset` from the start of the file.
+         *
+         * `length` is the number of bytes to map. It may be `map_entire_file`, in which
+         * case a mapping of the entire file is created.
+         */
+        template<typename String>
+        void map(const String& path, const size_type offset,
+                 const size_type length, std::error_code& error);
 
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
-     * reason is reported via `error` and the object remains in a state as if this
-     * function hadn't been called.
-     *
-     * `path`, which must be a path to an existing file, is used to retrieve a file
-     * handle (which is closed when the object destructs or `unmap` is called), which is
-     * then used to memory map the requested region. Upon failure, `error` is set to
-     * indicate the reason and the object remains in an unmapped state.
-     * 
-     * The entire file is mapped.
-     */
-    template<typename String>
-    void map(const String& path, std::error_code& error)
-    {
-        map(path, 0, map_entire_file, error);
-    }
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
+         * reason is reported via `error` and the object remains in a state as if this
+         * function hadn't been called.
+         *
+         * `path`, which must be a path to an existing file, is used to retrieve a file
+         * handle (which is closed when the object destructs or `unmap` is called), which is
+         * then used to memory map the requested region. Upon failure, `error` is set to
+         * indicate the reason and the object remains in an unmapped state.
+         *
+         * The entire file is mapped.
+         */
+        template<typename String>
+        void map(const String& path, std::error_code& error)
+        {
+            map(path, 0, map_entire_file, error);
+        }
 
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is
-     * unsuccesful, the reason is reported via `error` and the object remains in
-     * a state as if this function hadn't been called.
-     *
-     * `handle`, which must be a valid file handle, which is used to memory map the
-     * requested region. Upon failure, `error` is set to indicate the reason and the
-     * object remains in an unmapped state.
-     *
-     * `offset` is the number of bytes, relative to the start of the file, where the
-     * mapping should begin. When specifying it, there is no need to worry about
-     * providing a value that is aligned with the operating system's page allocation
-     * granularity. This is adjusted by the implementation such that the first requested
-     * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
-     * `offset` from the start of the file.
-     *
-     * `length` is the number of bytes to map. It may be `map_entire_file`, in which
-     * case a mapping of the entire file is created.
-     */
-    void map(const handle_type handle, const size_type offset,
-            const size_type length, std::error_code& error);
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is
+         * unsuccesful, the reason is reported via `error` and the object remains in
+         * a state as if this function hadn't been called.
+         *
+         * `handle`, which must be a valid file handle, which is used to memory map the
+         * requested region. Upon failure, `error` is set to indicate the reason and the
+         * object remains in an unmapped state.
+         *
+         * `offset` is the number of bytes, relative to the start of the file, where the
+         * mapping should begin. When specifying it, there is no need to worry about
+         * providing a value that is aligned with the operating system's page allocation
+         * granularity. This is adjusted by the implementation such that the first requested
+         * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
+         * `offset` from the start of the file.
+         *
+         * `length` is the number of bytes to map. It may be `map_entire_file`, in which
+         * case a mapping of the entire file is created.
+         */
+        void map(const handle_type handle, const size_type offset,
+                 const size_type length, std::error_code& error);
 
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is
-     * unsuccesful, the reason is reported via `error` and the object remains in
-     * a state as if this function hadn't been called.
-     *
-     * `handle`, which must be a valid file handle, which is used to memory map the
-     * requested region. Upon failure, `error` is set to indicate the reason and the
-     * object remains in an unmapped state.
-     * 
-     * The entire file is mapped.
-     */
-    void map(const handle_type handle, std::error_code& error)
-    {
-        map(handle, 0, map_entire_file, error);
-    }
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is
+         * unsuccesful, the reason is reported via `error` and the object remains in
+         * a state as if this function hadn't been called.
+         *
+         * `handle`, which must be a valid file handle, which is used to memory map the
+         * requested region. Upon failure, `error` is set to indicate the reason and the
+         * object remains in an unmapped state.
+         *
+         * The entire file is mapped.
+         */
+        void map(const handle_type handle, std::error_code& error)
+        {
+            map(handle, 0, map_entire_file, error);
+        }
 
-    /**
-     * If a valid memory mapping has been created prior to this call, this call
-     * instructs the kernel to unmap the memory region and disassociate this object
-     * from the file.
-     *
-     * The file handle associated with the file that is mapped is only closed if the
-     * mapping was created using a file path. If, on the other hand, an existing
-     * file handle was used to create the mapping, the file handle is not closed.
-     */
-    void unmap();
+        /**
+         * If a valid memory mapping has been created prior to this call, this call
+         * instructs the kernel to unmap the memory region and disassociate this object
+         * from the file.
+         *
+         * The file handle associated with the file that is mapped is only closed if the
+         * mapping was created using a file path. If, on the other hand, an existing
+         * file handle was used to create the mapping, the file handle is not closed.
+         */
+        void unmap();
 
-    void swap(basic_mmap& other);
+        void swap(basic_mmap& other);
 
-    /** Flushes the memory mapped page to disk. Errors are reported via `error`. */
-    template<access_mode A = AccessMode>
-    typename std::enable_if<A == access_mode::write, void>::type
-    sync(std::error_code& error);
+        /** Flushes the memory mapped page to disk. Errors are reported via `error`. */
+        template<access_mode A = AccessMode>
+        typename std::enable_if<A == access_mode::write, void>::type
+        sync(std::error_code& error);
 
-    /**
-     * All operators compare the address of the first byte and size of the two mapped
-     * regions.
-     */
+        /**
+         * All operators compare the address of the first byte and size of the two mapped
+         * regions.
+         */
 
-private:
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > pointer get_mapping_start() noexcept
-    {
-        return !data() ? nullptr : data() - mapping_offset();
-    }
+    private:
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > pointer get_mapping_start() noexcept
+        {
+            return !data() ? nullptr : data() - mapping_offset();
+        }
 
-    const_pointer get_mapping_start() const noexcept
-    {
-        return !data() ? nullptr : data() - mapping_offset();
-    }
+        const_pointer get_mapping_start() const noexcept
+        {
+            return !data() ? nullptr : data() - mapping_offset();
+        }
 
-    /**
-     * The destructor syncs changes to disk if `AccessMode` is `write`, but not
-     * if it's `read`, but since the destructor cannot be templated, we need to
-     * do SFINAE in a dedicated function, where one syncs and the other is a noop.
-     */
-    template<access_mode A = AccessMode>
-    typename std::enable_if<A == access_mode::write, void>::type
-    conditional_sync();
-    template<access_mode A = AccessMode>
-    typename std::enable_if<A == access_mode::read, void>::type conditional_sync();
-};
+        /**
+         * The destructor syncs changes to disk if `AccessMode` is `write`, but not
+         * if it's `read`, but since the destructor cannot be templated, we need to
+         * do SFINAE in a dedicated function, where one syncs and the other is a noop.
+         */
+        template<access_mode A = AccessMode>
+        typename std::enable_if<A == access_mode::write, void>::type
+        conditional_sync();
+        template<access_mode A = AccessMode>
+        typename std::enable_if<A == access_mode::read, void>::type conditional_sync();
+    };
 
-template<access_mode AccessMode, typename ByteT>
-bool operator==(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b);
+    template<access_mode AccessMode, typename ByteT>
+    bool operator==(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b);
 
-template<access_mode AccessMode, typename ByteT>
-bool operator!=(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b);
+    template<access_mode AccessMode, typename ByteT>
+    bool operator!=(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b);
 
-template<access_mode AccessMode, typename ByteT>
-bool operator<(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b);
+    template<access_mode AccessMode, typename ByteT>
+    bool operator<(const basic_mmap<AccessMode, ByteT>& a,
+                   const basic_mmap<AccessMode, ByteT>& b);
 
-template<access_mode AccessMode, typename ByteT>
-bool operator<=(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b);
+    template<access_mode AccessMode, typename ByteT>
+    bool operator<=(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b);
 
-template<access_mode AccessMode, typename ByteT>
-bool operator>(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b);
+    template<access_mode AccessMode, typename ByteT>
+    bool operator>(const basic_mmap<AccessMode, ByteT>& a,
+                   const basic_mmap<AccessMode, ByteT>& b);
 
-template<access_mode AccessMode, typename ByteT>
-bool operator>=(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b);
+    template<access_mode AccessMode, typename ByteT>
+    bool operator>=(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b);
 
 /**
  * This is the basis for all read-only mmap objects and should be preferred over
  * directly using `basic_mmap`.
  */
-template<typename ByteT>
-using basic_mmap_source = basic_mmap<access_mode::read, ByteT>;
+    template<typename ByteT>
+    using basic_mmap_source = basic_mmap<access_mode::read, ByteT>;
 
 /**
  * This is the basis for all read-write mmap objects and should be preferred over
  * directly using `basic_mmap`.
  */
-template<typename ByteT>
-using basic_mmap_sink = basic_mmap<access_mode::write, ByteT>;
+    template<typename ByteT>
+    using basic_mmap_sink = basic_mmap<access_mode::write, ByteT>;
 
 /**
  * These aliases cover the most common use cases, both representing a raw byte stream
  * (either with a char or an unsigned char/uint8_t).
  */
-using mmap_source = basic_mmap_source<char>;
-using ummap_source = basic_mmap_source<unsigned char>;
+    using mmap_source = basic_mmap_source<char>;
+    using ummap_source = basic_mmap_source<unsigned char>;
 
-using mmap_sink = basic_mmap_sink<char>;
-using ummap_sink = basic_mmap_sink<unsigned char>;
+    using mmap_sink = basic_mmap_sink<char>;
+    using ummap_sink = basic_mmap_sink<unsigned char>;
 
 /**
  * Convenience factory method that constructs a mapping for any `basic_mmap` or
  * `basic_mmap` type.
  */
-template<
-    typename MMap,
-    typename MappingToken
-> MMap make_mmap(const MappingToken& token,
-        int64_t offset, int64_t length, std::error_code& error)
-{
-    MMap mmap;
-    mmap.map(token, offset, length, error);
-    return mmap;
-}
+    template<
+            typename MMap,
+            typename MappingToken
+    > MMap make_mmap(const MappingToken& token,
+                     int64_t offset, int64_t length, std::error_code& error)
+    {
+        MMap mmap;
+        mmap.map(token, offset, length, error);
+        return mmap;
+    }
 
 /**
  * Convenience factory method.
@@ -578,18 +578,18 @@ template<
  * `std::filesystem::path`, `std::vector<char>`, or similar), or a
  * `mmap_source::handle_type`.
  */
-template<typename MappingToken>
-mmap_source make_mmap_source(const MappingToken& token, mmap_source::size_type offset,
-        mmap_source::size_type length, std::error_code& error)
-{
-    return make_mmap<mmap_source>(token, offset, length, error);
-}
+    template<typename MappingToken>
+    mmap_source make_mmap_source(const MappingToken& token, mmap_source::size_type offset,
+                                 mmap_source::size_type length, std::error_code& error)
+    {
+        return make_mmap<mmap_source>(token, offset, length, error);
+    }
 
-template<typename MappingToken>
-mmap_source make_mmap_source(const MappingToken& token, std::error_code& error)
-{
-    return make_mmap_source(token, 0, map_entire_file, error);
-}
+    template<typename MappingToken>
+    mmap_source make_mmap_source(const MappingToken& token, std::error_code& error)
+    {
+        return make_mmap_source(token, 0, map_entire_file, error);
+    }
 
 /**
  * Convenience factory method.
@@ -598,18 +598,18 @@ mmap_source make_mmap_source(const MappingToken& token, std::error_code& error)
  * `std::filesystem::path`, `std::vector<char>`, or similar), or a
  * `mmap_sink::handle_type`.
  */
-template<typename MappingToken>
-mmap_sink make_mmap_sink(const MappingToken& token, mmap_sink::size_type offset,
-        mmap_sink::size_type length, std::error_code& error)
-{
-    return make_mmap<mmap_sink>(token, offset, length, error);
-}
+    template<typename MappingToken>
+    mmap_sink make_mmap_sink(const MappingToken& token, mmap_sink::size_type offset,
+                             mmap_sink::size_type length, std::error_code& error)
+    {
+        return make_mmap<mmap_sink>(token, offset, length, error);
+    }
 
-template<typename MappingToken>
-mmap_sink make_mmap_sink(const MappingToken& token, std::error_code& error)
-{
-    return make_mmap_sink(token, 0, map_entire_file, error);
-}
+    template<typename MappingToken>
+    mmap_sink make_mmap_sink(const MappingToken& token, std::error_code& error)
+    {
+        return make_mmap_sink(token, 0, map_entire_file, error);
+    }
 
 } // namespace mio
 
@@ -668,147 +668,147 @@ mmap_sink make_mmap_sink(const MappingToken& token, std::error_code& error)
 #include <type_traits>
 
 namespace mio {
-namespace detail {
+    namespace detail {
 
-template<
-    typename S,
-    typename C = typename std::decay<S>::type,
-    typename = decltype(std::declval<C>().data()),
-    typename = typename std::enable_if<
-        std::is_same<typename C::value_type, char>::value
-#ifdef _WIN32
-        || std::is_same<typename C::value_type, wchar_t>::value
+        template<
+                typename S,
+                typename C = typename std::decay<S>::type,
+                typename = decltype(std::declval<C>().data()),
+                typename = typename std::enable_if<
+                        std::is_same<typename C::value_type, char>::value
+                        #ifdef _WIN32
+                        || std::is_same<typename C::value_type, wchar_t>::value
 #endif
-    >::type
-> struct char_type_helper {
-    using type = typename C::value_type;
-};
+                >::type
+        > struct char_type_helper {
+            using type = typename C::value_type;
+        };
 
-template<class T>
-struct char_type {
-    using type = typename char_type_helper<T>::type;
-};
+        template<class T>
+        struct char_type {
+            using type = typename char_type_helper<T>::type;
+        };
 
 // TODO: can we avoid this brute force approach?
-template<>
-struct char_type<char*> {
-    using type = char;
-};
+        template<>
+        struct char_type<char*> {
+            using type = char;
+        };
 
-template<>
-struct char_type<const char*> {
-    using type = char;
-};
+        template<>
+        struct char_type<const char*> {
+            using type = char;
+        };
 
-template<size_t N>
-struct char_type<char[N]> {
-    using type = char;
-};
+        template<size_t N>
+        struct char_type<char[N]> {
+            using type = char;
+        };
 
-template<size_t N>
-struct char_type<const char[N]> {
-    using type = char;
-};
+        template<size_t N>
+        struct char_type<const char[N]> {
+            using type = char;
+        };
 
 #ifdef _WIN32
-template<>
-struct char_type<wchar_t*> {
-    using type = wchar_t;
-};
+        template<>
+        struct char_type<wchar_t*> {
+            using type = wchar_t;
+        };
 
-template<>
-struct char_type<const wchar_t*> {
-    using type = wchar_t;
-};
+        template<>
+        struct char_type<const wchar_t*> {
+            using type = wchar_t;
+        };
 
-template<size_t N>
-struct char_type<wchar_t[N]> {
-    using type = wchar_t;
-};
+        template<size_t N>
+        struct char_type<wchar_t[N]> {
+            using type = wchar_t;
+        };
 
-template<size_t N>
-struct char_type<const wchar_t[N]> {
-    using type = wchar_t;
-};
+        template<size_t N>
+        struct char_type<const wchar_t[N]> {
+            using type = wchar_t;
+        };
 #endif // _WIN32
 
-template<typename CharT, typename S>
-struct is_c_str_helper
-{
-    static constexpr bool value = std::is_same<
-        CharT*,
-        // TODO: I'm so sorry for this... Can this be made cleaner?
-        typename std::add_pointer<
-            typename std::remove_cv<
-                typename std::remove_pointer<
-                    typename std::decay<
-                        S
+        template<typename CharT, typename S>
+        struct is_c_str_helper
+        {
+            static constexpr bool value = std::is_same<
+                    CharT*,
+                    // TODO: I'm so sorry for this... Can this be made cleaner?
+                    typename std::add_pointer<
+                            typename std::remove_cv<
+                                    typename std::remove_pointer<
+                                            typename std::decay<
+                                                    S
+                                            >::type
+                                    >::type
+                            >::type
                     >::type
-                >::type
-            >::type
-        >::type
-    >::value;
-};
+            >::value;
+        };
 
-template<typename S>
-struct is_c_str
-{
-    static constexpr bool value = is_c_str_helper<char, S>::value;
-};
+        template<typename S>
+        struct is_c_str
+        {
+            static constexpr bool value = is_c_str_helper<char, S>::value;
+        };
 
 #ifdef _WIN32
-template<typename S>
-struct is_c_wstr
-{
-    static constexpr bool value = is_c_str_helper<wchar_t, S>::value;
-};
+        template<typename S>
+        struct is_c_wstr
+        {
+            static constexpr bool value = is_c_str_helper<wchar_t, S>::value;
+        };
 #endif // _WIN32
 
-template<typename S>
-struct is_c_str_or_c_wstr
-{
-    static constexpr bool value = is_c_str<S>::value
-#ifdef _WIN32
-        || is_c_wstr<S>::value
+        template<typename S>
+        struct is_c_str_or_c_wstr
+        {
+            static constexpr bool value = is_c_str<S>::value
+                                          #ifdef _WIN32
+                                          || is_c_wstr<S>::value
 #endif
-        ;
-};
+            ;
+        };
 
-template<
-    typename String,
-    typename = decltype(std::declval<String>().data()),
-    typename = typename std::enable_if<!is_c_str_or_c_wstr<String>::value>::type
-> const typename char_type<String>::type* c_str(const String& path)
-{
-    return path.data();
-}
+        template<
+                typename String,
+                typename = decltype(std::declval<String>().data()),
+                typename = typename std::enable_if<!is_c_str_or_c_wstr<String>::value>::type
+        > const typename char_type<String>::type* c_str(const String& path)
+        {
+            return path.data();
+        }
 
-template<
-    typename String,
-    typename = decltype(std::declval<String>().empty()),
-    typename = typename std::enable_if<!is_c_str_or_c_wstr<String>::value>::type
-> bool empty(const String& path)
-{
-    return path.empty();
-}
+        template<
+                typename String,
+                typename = decltype(std::declval<String>().empty()),
+                typename = typename std::enable_if<!is_c_str_or_c_wstr<String>::value>::type
+        > bool empty(const String& path)
+        {
+            return path.empty();
+        }
 
-template<
-    typename String,
-    typename = typename std::enable_if<is_c_str_or_c_wstr<String>::value>::type
-> const typename char_type<String>::type* c_str(String path)
-{
-    return path;
-}
+        template<
+                typename String,
+                typename = typename std::enable_if<is_c_str_or_c_wstr<String>::value>::type
+        > const typename char_type<String>::type* c_str(String path)
+        {
+            return path;
+        }
 
-template<
-    typename String,
-    typename = typename std::enable_if<is_c_str_or_c_wstr<String>::value>::type
-> bool empty(String path)
-{
-    return !path || (*path == 0);
-}
+        template<
+                typename String,
+                typename = typename std::enable_if<is_c_str_or_c_wstr<String>::value>::type
+        > bool empty(String path)
+        {
+            return !path || (*path == 0);
+        }
 
-} // namespace detail
+    } // namespace detail
 } // namespace mio
 
 #endif // MIO_STRING_UTIL_HEADER
@@ -824,108 +824,108 @@ template<
 #endif
 
 namespace mio {
-namespace detail {
+    namespace detail {
 
 #ifdef _WIN32
-namespace win {
+        namespace win {
 
 /** Returns the 4 upper bytes of an 8-byte integer. */
-inline DWORD int64_high(int64_t n) noexcept
-{
-    return n >> 32;
-}
+            inline DWORD int64_high(int64_t n) noexcept
+            {
+                return n >> 32;
+            }
 
 /** Returns the 4 lower bytes of an 8-byte integer. */
-inline DWORD int64_low(int64_t n) noexcept
-{
-    return n & 0xffffffff;
-}
+            inline DWORD int64_low(int64_t n) noexcept
+            {
+                return n & 0xffffffff;
+            }
 
-template<
-    typename String,
-    typename = typename std::enable_if<
-        std::is_same<typename char_type<String>::type, char>::value
-    >::type
-> file_handle_type open_file_helper(const String& path, const access_mode mode)
-{
-    return ::CreateFileA(c_str(path),
-            mode == access_mode::read ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            0,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            0);
-}
+            template<
+                    typename String,
+                    typename = typename std::enable_if<
+                            std::is_same<typename char_type<String>::type, char>::value
+                    >::type
+            > file_handle_type open_file_helper(const String& path, const access_mode mode)
+            {
+                return ::CreateFileA(c_str(path),
+                                     mode == access_mode::read ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                     0,
+                                     OPEN_EXISTING,
+                                     FILE_ATTRIBUTE_NORMAL,
+                                     0);
+            }
 
-template<typename String>
-typename std::enable_if<
-    std::is_same<typename char_type<String>::type, wchar_t>::value,
-    file_handle_type
->::type open_file_helper(const String& path, const access_mode mode)
-{
-    return ::CreateFileW(c_str(path),
-            mode == access_mode::read ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            0,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            0);
-}
+            template<typename String>
+            typename std::enable_if<
+                    std::is_same<typename char_type<String>::type, wchar_t>::value,
+                    file_handle_type
+            >::type open_file_helper(const String& path, const access_mode mode)
+            {
+                return ::CreateFileW(c_str(path),
+                                     mode == access_mode::read ? GENERIC_READ : GENERIC_READ | GENERIC_WRITE,
+                                     FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                     0,
+                                     OPEN_EXISTING,
+                                     FILE_ATTRIBUTE_NORMAL,
+                                     0);
+            }
 
-} // win
+        } // win
 #endif // _WIN32
 
 /**
  * Returns the last platform specific system error (errno on POSIX and
  * GetLastError on Win) as a `std::error_code`.
  */
-inline std::error_code last_error() noexcept
-{
-    std::error_code error;
+        inline std::error_code last_error() noexcept
+        {
+            std::error_code error;
 #ifdef _WIN32
-    error.assign(GetLastError(), std::system_category());
+            error.assign(GetLastError(), std::system_category());
 #else
-    error.assign(errno, std::system_category());
+            error.assign(errno, std::system_category());
 #endif
-    return error;
-}
+            return error;
+        }
 
-template<typename String>
-file_handle_type open_file(const String& path, const access_mode mode,
-        std::error_code& error)
-{
-    error.clear();
-    if(detail::empty(path))
-    {
-        error = std::make_error_code(std::errc::invalid_argument);
-        return invalid_handle;
-    }
+        template<typename String>
+        file_handle_type open_file(const String& path, const access_mode mode,
+                                   std::error_code& error)
+        {
+            error.clear();
+            if(detail::empty(path))
+            {
+                error = std::make_error_code(std::errc::invalid_argument);
+                return invalid_handle;
+            }
 #ifdef _WIN32
-    const auto handle = win::open_file_helper(path, mode);
+            const auto handle = win::open_file_helper(path, mode);
 #else // POSIX
-    const auto handle = ::open(c_str(path),
+            const auto handle = ::open(c_str(path),
             mode == access_mode::read ? O_RDONLY : O_RDWR);
 #endif
-    if(handle == invalid_handle)
-    {
-        error = detail::last_error();
-    }
-    return handle;
-}
+            if(handle == invalid_handle)
+            {
+                error = detail::last_error();
+            }
+            return handle;
+        }
 
-inline size_t query_file_size(file_handle_type handle, std::error_code& error)
-{
-    error.clear();
+        inline size_t query_file_size(file_handle_type handle, std::error_code& error)
+        {
+            error.clear();
 #ifdef _WIN32
-    LARGE_INTEGER file_size;
-    if(::GetFileSizeEx(handle, &file_size) == 0)
-    {
-        error = detail::last_error();
-        return 0;
-    }
-	return static_cast<int64_t>(file_size.QuadPart);
+            LARGE_INTEGER file_size;
+            if(::GetFileSizeEx(handle, &file_size) == 0)
+            {
+                error = detail::last_error();
+                return 0;
+            }
+            return static_cast<int64_t>(file_size.QuadPart);
 #else // POSIX
-    struct stat sbuf;
+            struct stat sbuf;
     if(::fstat(handle, &sbuf) == -1)
     {
         error = detail::last_error();
@@ -933,52 +933,52 @@ inline size_t query_file_size(file_handle_type handle, std::error_code& error)
     }
     return sbuf.st_size;
 #endif
-}
+        }
 
-struct mmap_context
-{
-    char* data;
-    int64_t length;
-    int64_t mapped_length;
+        struct mmap_context
+        {
+            char* data;
+            int64_t length;
+            int64_t mapped_length;
 #ifdef _WIN32
-    file_handle_type file_mapping_handle;
+            file_handle_type file_mapping_handle;
 #endif
-};
+        };
 
-inline mmap_context memory_map(const file_handle_type file_handle, const int64_t offset,
-    const int64_t length, const access_mode mode, std::error_code& error)
-{
-    const int64_t aligned_offset = make_offset_page_aligned(offset);
-    const int64_t length_to_map = offset - aligned_offset + length;
+        inline mmap_context memory_map(const file_handle_type file_handle, const int64_t offset,
+                                       const int64_t length, const access_mode mode, std::error_code& error)
+        {
+            const int64_t aligned_offset = make_offset_page_aligned(offset);
+            const int64_t length_to_map = offset - aligned_offset + length;
 #ifdef _WIN32
-    const int64_t max_file_size = offset + length;
-    const auto file_mapping_handle = ::CreateFileMapping(
-            file_handle,
-            0,
-            mode == access_mode::read ? PAGE_READONLY : PAGE_READWRITE,
-            win::int64_high(max_file_size),
-            win::int64_low(max_file_size),
-            0);
-    if(file_mapping_handle == invalid_handle)
-    {
-        error = detail::last_error();
-        return {};
-    }
-    char* mapping_start = static_cast<char*>(::MapViewOfFile(
-            file_mapping_handle,
-            mode == access_mode::read ? FILE_MAP_READ : FILE_MAP_WRITE,
-            win::int64_high(aligned_offset),
-            win::int64_low(aligned_offset),
-            length_to_map));
-    if(mapping_start == nullptr)
-    {
-        // Close file handle if mapping it failed.
-        ::CloseHandle(file_mapping_handle);
-        error = detail::last_error();
-        return {};
-    }
+            const int64_t max_file_size = offset + length;
+            const auto file_mapping_handle = ::CreateFileMapping(
+                    file_handle,
+                    0,
+                    mode == access_mode::read ? PAGE_READONLY : PAGE_READWRITE,
+                    win::int64_high(max_file_size),
+                    win::int64_low(max_file_size),
+                    0);
+            if(file_mapping_handle == invalid_handle)
+            {
+                error = detail::last_error();
+                return {};
+            }
+            char* mapping_start = static_cast<char*>(::MapViewOfFile(
+                    file_mapping_handle,
+                    mode == access_mode::read ? FILE_MAP_READ : FILE_MAP_WRITE,
+                    win::int64_high(aligned_offset),
+                    win::int64_low(aligned_offset),
+                    length_to_map));
+            if(mapping_start == nullptr)
+            {
+                // Close file handle if mapping it failed.
+                ::CloseHandle(file_mapping_handle);
+                error = detail::last_error();
+                return {};
+            }
 #else // POSIX
-    char* mapping_start = static_cast<char*>(::mmap(
+            char* mapping_start = static_cast<char*>(::mmap(
             0, // Don't give hint as to where to map.
             length_to_map,
             mode == access_mode::read ? PROT_READ : PROT_WRITE,
@@ -991,318 +991,318 @@ inline mmap_context memory_map(const file_handle_type file_handle, const int64_t
         return {};
     }
 #endif
-    mmap_context ctx;
-    ctx.data = mapping_start + offset - aligned_offset;
-    ctx.length = length;
-    ctx.mapped_length = length_to_map;
+            mmap_context ctx;
+            ctx.data = mapping_start + offset - aligned_offset;
+            ctx.length = length;
+            ctx.mapped_length = length_to_map;
 #ifdef _WIN32
-    ctx.file_mapping_handle = file_mapping_handle;
+            ctx.file_mapping_handle = file_mapping_handle;
 #endif
-    return ctx;
-}
+            return ctx;
+        }
 
-} // namespace detail
+    } // namespace detail
 
 // -- basic_mmap --
 
-template<access_mode AccessMode, typename ByteT>
-basic_mmap<AccessMode, ByteT>::~basic_mmap()
-{
-    conditional_sync();
-    unmap();
-}
-
-template<access_mode AccessMode, typename ByteT>
-basic_mmap<AccessMode, ByteT>::basic_mmap(basic_mmap&& other)
-    : data_(std::move(other.data_))
-    , length_(std::move(other.length_))
-    , mapped_length_(std::move(other.mapped_length_))
-    , file_handle_(std::move(other.file_handle_))
-#ifdef _WIN32
-    , file_mapping_handle_(std::move(other.file_mapping_handle_))
-#endif
-    , is_handle_internal_(std::move(other.is_handle_internal_))
-{
-    other.data_ = nullptr;
-    other.length_ = other.mapped_length_ = 0;
-    other.file_handle_ = invalid_handle;
-#ifdef _WIN32
-    other.file_mapping_handle_ = invalid_handle;
-#endif
-}
-
-template<access_mode AccessMode, typename ByteT>
-basic_mmap<AccessMode, ByteT>&
-basic_mmap<AccessMode, ByteT>::operator=(basic_mmap&& other)
-{
-    if(this != &other)
+    template<access_mode AccessMode, typename ByteT>
+    basic_mmap<AccessMode, ByteT>::~basic_mmap()
     {
-        // First the existing mapping needs to be removed.
+        conditional_sync();
         unmap();
-        data_ = std::move(other.data_);
-        length_ = std::move(other.length_);
-        mapped_length_ = std::move(other.mapped_length_);
-        file_handle_ = std::move(other.file_handle_);
-#ifdef _WIN32
-        file_mapping_handle_ = std::move(other.file_mapping_handle_);
-#endif
-        is_handle_internal_ = std::move(other.is_handle_internal_);
+    }
 
-        // The moved from basic_mmap's fields need to be reset, because
-        // otherwise other's destructor will unmap the same mapping that was
-        // just moved into this.
+    template<access_mode AccessMode, typename ByteT>
+    basic_mmap<AccessMode, ByteT>::basic_mmap(basic_mmap&& other)
+            : data_(std::move(other.data_))
+            , length_(std::move(other.length_))
+            , mapped_length_(std::move(other.mapped_length_))
+            , file_handle_(std::move(other.file_handle_))
+#ifdef _WIN32
+            , file_mapping_handle_(std::move(other.file_mapping_handle_))
+#endif
+            , is_handle_internal_(std::move(other.is_handle_internal_))
+    {
         other.data_ = nullptr;
         other.length_ = other.mapped_length_ = 0;
         other.file_handle_ = invalid_handle;
 #ifdef _WIN32
         other.file_mapping_handle_ = invalid_handle;
 #endif
-        other.is_handle_internal_ = false;
-    }
-    return *this;
-}
-
-template<access_mode AccessMode, typename ByteT>
-typename basic_mmap<AccessMode, ByteT>::handle_type
-basic_mmap<AccessMode, ByteT>::mapping_handle() const noexcept
-{
-#ifdef _WIN32
-    return file_mapping_handle_;
-#else
-    return file_handle_;
-#endif
-}
-
-template<access_mode AccessMode, typename ByteT>
-template<typename String>
-void basic_mmap<AccessMode, ByteT>::map(const String& path, const size_type offset,
-        const size_type length, std::error_code& error)
-{
-    error.clear();
-    if(detail::empty(path))
-    {
-        error = std::make_error_code(std::errc::invalid_argument);
-        return;
-    }
-    const auto handle = detail::open_file(path, AccessMode, error);
-    if(error)
-    {
-        return;
     }
 
-    map(handle, offset, length, error);
-    // This MUST be after the call to map, as that sets this to true.
-    if(!error)
+    template<access_mode AccessMode, typename ByteT>
+    basic_mmap<AccessMode, ByteT>&
+    basic_mmap<AccessMode, ByteT>::operator=(basic_mmap&& other)
     {
-        is_handle_internal_ = true;
-    }
-}
-
-template<access_mode AccessMode, typename ByteT>
-void basic_mmap<AccessMode, ByteT>::map(const handle_type handle,
-        const size_type offset, const size_type length, std::error_code& error)
-{
-    error.clear();
-    if(handle == invalid_handle)
-    {
-        error = std::make_error_code(std::errc::bad_file_descriptor);
-        return;
-    }
-
-    const auto file_size = detail::query_file_size(handle, error);
-    if(error)
-    {
-        return;
-    }
-
-    if(offset + length > file_size)
-    {
-        error = std::make_error_code(std::errc::invalid_argument);
-        return;
-    }
-
-    const auto ctx = detail::memory_map(handle, offset,
-            length == map_entire_file ? (file_size - offset) : length,
-            AccessMode, error);
-    if(!error)
-    {
-        // We must unmap the previous mapping that may have existed prior to this call.
-        // Note that this must only be invoked after a new mapping has been created in
-        // order to provide the strong guarantee that, should the new mapping fail, the
-        // `map` function leaves this instance in a state as though the function had
-        // never been invoked.
-        unmap();
-        file_handle_ = handle;
-        is_handle_internal_ = false;
-        data_ = reinterpret_cast<pointer>(ctx.data);
-        length_ = ctx.length;
-        mapped_length_ = ctx.mapped_length;
-#ifdef _WIN32
-        file_mapping_handle_ = ctx.file_mapping_handle;
-#endif
-    }
-}
-
-template<access_mode AccessMode, typename ByteT>
-template<access_mode A>
-typename std::enable_if<A == access_mode::write, void>::type
-basic_mmap<AccessMode, ByteT>::sync(std::error_code& error)
-{
-    error.clear();
-    if(!is_open())
-    {
-        error = std::make_error_code(std::errc::bad_file_descriptor);
-        return;
-    }
-
-    if(data())
-    {
-#ifdef _WIN32
-        if(::FlushViewOfFile(get_mapping_start(), mapped_length_) == 0
-           || ::FlushFileBuffers(file_handle_) == 0)
-#else // POSIX
-        if(::msync(get_mapping_start(), mapped_length_, MS_SYNC) != 0)
-#endif
+        if(this != &other)
         {
-            error = detail::last_error();
+            // First the existing mapping needs to be removed.
+            unmap();
+            data_ = std::move(other.data_);
+            length_ = std::move(other.length_);
+            mapped_length_ = std::move(other.mapped_length_);
+            file_handle_ = std::move(other.file_handle_);
+#ifdef _WIN32
+            file_mapping_handle_ = std::move(other.file_mapping_handle_);
+#endif
+            is_handle_internal_ = std::move(other.is_handle_internal_);
+
+            // The moved from basic_mmap's fields need to be reset, because
+            // otherwise other's destructor will unmap the same mapping that was
+            // just moved into this.
+            other.data_ = nullptr;
+            other.length_ = other.mapped_length_ = 0;
+            other.file_handle_ = invalid_handle;
+#ifdef _WIN32
+            other.file_mapping_handle_ = invalid_handle;
+#endif
+            other.is_handle_internal_ = false;
+        }
+        return *this;
+    }
+
+    template<access_mode AccessMode, typename ByteT>
+    typename basic_mmap<AccessMode, ByteT>::handle_type
+    basic_mmap<AccessMode, ByteT>::mapping_handle() const noexcept
+    {
+#ifdef _WIN32
+        return file_mapping_handle_;
+#else
+        return file_handle_;
+#endif
+    }
+
+    template<access_mode AccessMode, typename ByteT>
+    template<typename String>
+    void basic_mmap<AccessMode, ByteT>::map(const String& path, const size_type offset,
+                                            const size_type length, std::error_code& error)
+    {
+        error.clear();
+        if(detail::empty(path))
+        {
+            error = std::make_error_code(std::errc::invalid_argument);
             return;
         }
-    }
-#ifdef _WIN32
-    if(::FlushFileBuffers(file_handle_) == 0)
-    {
-        error = detail::last_error();
-    }
-#endif
-}
+        const auto handle = detail::open_file(path, AccessMode, error);
+        if(error)
+        {
+            return;
+        }
 
-template<access_mode AccessMode, typename ByteT>
-void basic_mmap<AccessMode, ByteT>::unmap()
-{
-    if(!is_open()) { return; }
-    // TODO do we care about errors here?
-#ifdef _WIN32
-    if(is_mapped())
-    {
-        ::UnmapViewOfFile(get_mapping_start());
-        ::CloseHandle(file_mapping_handle_);
+        map(handle, offset, length, error);
+        // This MUST be after the call to map, as that sets this to true.
+        if(!error)
+        {
+            is_handle_internal_ = true;
+        }
     }
+
+    template<access_mode AccessMode, typename ByteT>
+    void basic_mmap<AccessMode, ByteT>::map(const handle_type handle,
+                                            const size_type offset, const size_type length, std::error_code& error)
+    {
+        error.clear();
+        if(handle == invalid_handle)
+        {
+            error = std::make_error_code(std::errc::bad_file_descriptor);
+            return;
+        }
+
+        const auto file_size = detail::query_file_size(handle, error);
+        if(error)
+        {
+            return;
+        }
+
+        if(offset + length > file_size)
+        {
+            error = std::make_error_code(std::errc::invalid_argument);
+            return;
+        }
+
+        const auto ctx = detail::memory_map(handle, offset,
+                                            length == map_entire_file ? (file_size - offset) : length,
+                                            AccessMode, error);
+        if(!error)
+        {
+            // We must unmap the previous mapping that may have existed prior to this call.
+            // Note that this must only be invoked after a new mapping has been created in
+            // order to provide the strong guarantee that, should the new mapping fail, the
+            // `map` function leaves this instance in a state as though the function had
+            // never been invoked.
+            unmap();
+            file_handle_ = handle;
+            is_handle_internal_ = false;
+            data_ = reinterpret_cast<pointer>(ctx.data);
+            length_ = ctx.length;
+            mapped_length_ = ctx.mapped_length;
+#ifdef _WIN32
+            file_mapping_handle_ = ctx.file_mapping_handle;
+#endif
+        }
+    }
+
+    template<access_mode AccessMode, typename ByteT>
+    template<access_mode A>
+    typename std::enable_if<A == access_mode::write, void>::type
+    basic_mmap<AccessMode, ByteT>::sync(std::error_code& error)
+    {
+        error.clear();
+        if(!is_open())
+        {
+            error = std::make_error_code(std::errc::bad_file_descriptor);
+            return;
+        }
+
+        if(data())
+        {
+#ifdef _WIN32
+            if(::FlushViewOfFile(get_mapping_start(), mapped_length_) == 0
+               || ::FlushFileBuffers(file_handle_) == 0)
 #else // POSIX
-    if(data_) { ::munmap(const_cast<pointer>(get_mapping_start()), mapped_length_); }
+                if(::msync(get_mapping_start(), mapped_length_, MS_SYNC) != 0)
 #endif
-
-    // If `file_handle_` was obtained by our opening it (when map is called with
-    // a path, rather than an existing file handle), we need to close it,
-    // otherwise it must not be closed as it may still be used outside this
-    // instance.
-    if(is_handle_internal_)
-    {
+            {
+                error = detail::last_error();
+                return;
+            }
+        }
 #ifdef _WIN32
-        ::CloseHandle(file_handle_);
-#else // POSIX
-        ::close(file_handle_);
+        if(::FlushFileBuffers(file_handle_) == 0)
+        {
+            error = detail::last_error();
+        }
 #endif
     }
 
-    // Reset fields to their default values.
-    data_ = nullptr;
-    length_ = mapped_length_ = 0;
-    file_handle_ = invalid_handle;
-#ifdef _WIN32
-    file_mapping_handle_ = invalid_handle;
-#endif
-}
-
-template<access_mode AccessMode, typename ByteT>
-bool basic_mmap<AccessMode, ByteT>::is_mapped() const noexcept
-{
-#ifdef _WIN32
-    return file_mapping_handle_ != invalid_handle;
-#else // POSIX
-    return is_open();
-#endif
-}
-
-template<access_mode AccessMode, typename ByteT>
-void basic_mmap<AccessMode, ByteT>::swap(basic_mmap& other)
-{
-    if(this != &other)
+    template<access_mode AccessMode, typename ByteT>
+    void basic_mmap<AccessMode, ByteT>::unmap()
     {
-        using std::swap;
-        swap(data_, other.data_);
-        swap(file_handle_, other.file_handle_);
+        if(!is_open()) { return; }
+        // TODO do we care about errors here?
 #ifdef _WIN32
-        swap(file_mapping_handle_, other.file_mapping_handle_);
+        if(is_mapped())
+        {
+            ::UnmapViewOfFile(get_mapping_start());
+            ::CloseHandle(file_mapping_handle_);
+        }
+#else // POSIX
+        if(data_) { ::munmap(const_cast<pointer>(get_mapping_start()), mapped_length_); }
 #endif
-        swap(length_, other.length_);
-        swap(mapped_length_, other.mapped_length_);
-        swap(is_handle_internal_, other.is_handle_internal_);
+
+        // If `file_handle_` was obtained by our opening it (when map is called with
+        // a path, rather than an existing file handle), we need to close it,
+        // otherwise it must not be closed as it may still be used outside this
+        // instance.
+        if(is_handle_internal_)
+        {
+#ifdef _WIN32
+            ::CloseHandle(file_handle_);
+#else // POSIX
+            ::close(file_handle_);
+#endif
+        }
+
+        // Reset fields to their default values.
+        data_ = nullptr;
+        length_ = mapped_length_ = 0;
+        file_handle_ = invalid_handle;
+#ifdef _WIN32
+        file_mapping_handle_ = invalid_handle;
+#endif
     }
-}
 
-template<access_mode AccessMode, typename ByteT>
-template<access_mode A>
-typename std::enable_if<A == access_mode::write, void>::type
-basic_mmap<AccessMode, ByteT>::conditional_sync()
-{
-    // This is invoked from the destructor, so not much we can do about
-    // failures here.
-    std::error_code ec;
-    sync(ec);
-}
+    template<access_mode AccessMode, typename ByteT>
+    bool basic_mmap<AccessMode, ByteT>::is_mapped() const noexcept
+    {
+#ifdef _WIN32
+        return file_mapping_handle_ != invalid_handle;
+#else // POSIX
+        return is_open();
+#endif
+    }
 
-template<access_mode AccessMode, typename ByteT>
-template<access_mode A>
-typename std::enable_if<A == access_mode::read, void>::type
-basic_mmap<AccessMode, ByteT>::conditional_sync()
-{
-    // noop
-}
+    template<access_mode AccessMode, typename ByteT>
+    void basic_mmap<AccessMode, ByteT>::swap(basic_mmap& other)
+    {
+        if(this != &other)
+        {
+            using std::swap;
+            swap(data_, other.data_);
+            swap(file_handle_, other.file_handle_);
+#ifdef _WIN32
+            swap(file_mapping_handle_, other.file_mapping_handle_);
+#endif
+            swap(length_, other.length_);
+            swap(mapped_length_, other.mapped_length_);
+            swap(is_handle_internal_, other.is_handle_internal_);
+        }
+    }
 
-template<access_mode AccessMode, typename ByteT>
-bool operator==(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b)
-{
-    return a.data() == b.data()
-        && a.size() == b.size();
-}
+    template<access_mode AccessMode, typename ByteT>
+    template<access_mode A>
+    typename std::enable_if<A == access_mode::write, void>::type
+    basic_mmap<AccessMode, ByteT>::conditional_sync()
+    {
+        // This is invoked from the destructor, so not much we can do about
+        // failures here.
+        std::error_code ec;
+        sync(ec);
+    }
 
-template<access_mode AccessMode, typename ByteT>
-bool operator!=(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b)
-{
-    return !(a == b);
-}
+    template<access_mode AccessMode, typename ByteT>
+    template<access_mode A>
+    typename std::enable_if<A == access_mode::read, void>::type
+    basic_mmap<AccessMode, ByteT>::conditional_sync()
+    {
+        // noop
+    }
 
-template<access_mode AccessMode, typename ByteT>
-bool operator<(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b)
-{
-    if(a.data() == b.data()) { return a.size() < b.size(); }
-    return a.data() < b.data();
-}
+    template<access_mode AccessMode, typename ByteT>
+    bool operator==(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b)
+    {
+        return a.data() == b.data()
+               && a.size() == b.size();
+    }
 
-template<access_mode AccessMode, typename ByteT>
-bool operator<=(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b)
-{
-    return !(a > b);
-}
+    template<access_mode AccessMode, typename ByteT>
+    bool operator!=(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b)
+    {
+        return !(a == b);
+    }
 
-template<access_mode AccessMode, typename ByteT>
-bool operator>(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b)
-{
-    if(a.data() == b.data()) { return a.size() > b.size(); }
-    return a.data() > b.data();
-}
+    template<access_mode AccessMode, typename ByteT>
+    bool operator<(const basic_mmap<AccessMode, ByteT>& a,
+                   const basic_mmap<AccessMode, ByteT>& b)
+    {
+        if(a.data() == b.data()) { return a.size() < b.size(); }
+        return a.data() < b.data();
+    }
 
-template<access_mode AccessMode, typename ByteT>
-bool operator>=(const basic_mmap<AccessMode, ByteT>& a,
-        const basic_mmap<AccessMode, ByteT>& b)
-{
-    return !(a < b);
-}
+    template<access_mode AccessMode, typename ByteT>
+    bool operator<=(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b)
+    {
+        return !(a > b);
+    }
+
+    template<access_mode AccessMode, typename ByteT>
+    bool operator>(const basic_mmap<AccessMode, ByteT>& a,
+                   const basic_mmap<AccessMode, ByteT>& b)
+    {
+        if(a.data() == b.data()) { return a.size() > b.size(); }
+        return a.data() > b.data();
+    }
+
+    template<access_mode AccessMode, typename ByteT>
+    bool operator>=(const basic_mmap<AccessMode, ByteT>& a,
+                    const basic_mmap<AccessMode, ByteT>& b)
+    {
+        return !(a < b);
+    }
 
 } // namespace mio
 
@@ -1426,371 +1426,371 @@ namespace mio {
  * This is not the default behaviour of `basic_mmap` to avoid allocating on the heap if
  * shared semantics are not required.
  */
-template<
-    access_mode AccessMode,
-    typename ByteT
-> class basic_shared_mmap
-{
-    using impl_type = basic_mmap<AccessMode, ByteT>;
-    std::shared_ptr<impl_type> pimpl_;
-
-public:
-    using value_type = typename impl_type::value_type;
-    using size_type = typename impl_type::size_type;
-    using reference = typename impl_type::reference;
-    using const_reference = typename impl_type::const_reference;
-    using pointer = typename impl_type::pointer;
-    using const_pointer = typename impl_type::const_pointer;
-    using difference_type = typename impl_type::difference_type;
-    using iterator = typename impl_type::iterator;
-    using const_iterator = typename impl_type::const_iterator;
-    using reverse_iterator = typename impl_type::reverse_iterator;
-    using const_reverse_iterator = typename impl_type::const_reverse_iterator;
-    using iterator_category = typename impl_type::iterator_category;
-    using handle_type = typename impl_type::handle_type;
-    using mmap_type = impl_type;
-
-    basic_shared_mmap() = default;
-    basic_shared_mmap(const basic_shared_mmap&) = default;
-    basic_shared_mmap& operator=(const basic_shared_mmap&) = default;
-    basic_shared_mmap(basic_shared_mmap&&) = default;
-    basic_shared_mmap& operator=(basic_shared_mmap&&) = default;
-
-    /** Takes ownership of an existing mmap object. */
-    basic_shared_mmap(mmap_type&& mmap)
-        : pimpl_(std::make_shared<mmap_type>(std::move(mmap)))
-    {}
-
-    /** Takes ownership of an existing mmap object. */
-    basic_shared_mmap& operator=(mmap_type&& mmap)
+    template<
+            access_mode AccessMode,
+            typename ByteT
+    > class basic_shared_mmap
     {
-        pimpl_ = std::make_shared<mmap_type>(std::move(mmap));
-        return *this;
-    }
+        using impl_type = basic_mmap<AccessMode, ByteT>;
+        std::shared_ptr<impl_type> pimpl_;
 
-    /** Initializes this object with an already established shared mmap. */
-    basic_shared_mmap(std::shared_ptr<mmap_type> mmap) : pimpl_(std::move(mmap)) {}
+    public:
+        using value_type = typename impl_type::value_type;
+        using size_type = typename impl_type::size_type;
+        using reference = typename impl_type::reference;
+        using const_reference = typename impl_type::const_reference;
+        using pointer = typename impl_type::pointer;
+        using const_pointer = typename impl_type::const_pointer;
+        using difference_type = typename impl_type::difference_type;
+        using iterator = typename impl_type::iterator;
+        using const_iterator = typename impl_type::const_iterator;
+        using reverse_iterator = typename impl_type::reverse_iterator;
+        using const_reverse_iterator = typename impl_type::const_reverse_iterator;
+        using iterator_category = typename impl_type::iterator_category;
+        using handle_type = typename impl_type::handle_type;
+        using mmap_type = impl_type;
 
-    /** Initializes this object with an already established shared mmap. */
-    basic_shared_mmap& operator=(std::shared_ptr<mmap_type> mmap)
-    {
-        pimpl_ = std::move(mmap);
-        return *this;
-    }
+        basic_shared_mmap() = default;
+        basic_shared_mmap(const basic_shared_mmap&) = default;
+        basic_shared_mmap& operator=(const basic_shared_mmap&) = default;
+        basic_shared_mmap(basic_shared_mmap&&) = default;
+        basic_shared_mmap& operator=(basic_shared_mmap&&) = default;
+
+        /** Takes ownership of an existing mmap object. */
+        basic_shared_mmap(mmap_type&& mmap)
+                : pimpl_(std::make_shared<mmap_type>(std::move(mmap)))
+        {}
+
+        /** Takes ownership of an existing mmap object. */
+        basic_shared_mmap& operator=(mmap_type&& mmap)
+        {
+            pimpl_ = std::make_shared<mmap_type>(std::move(mmap));
+            return *this;
+        }
+
+        /** Initializes this object with an already established shared mmap. */
+        basic_shared_mmap(std::shared_ptr<mmap_type> mmap) : pimpl_(std::move(mmap)) {}
+
+        /** Initializes this object with an already established shared mmap. */
+        basic_shared_mmap& operator=(std::shared_ptr<mmap_type> mmap)
+        {
+            pimpl_ = std::move(mmap);
+            return *this;
+        }
 
 #ifdef __cpp_exceptions
-    /**
-     * The same as invoking the `map` function, except any error that may occur
-     * while establishing the mapping is wrapped in a `std::system_error` and is
-     * thrown.
-     */
-    template<typename String>
-    basic_shared_mmap(const String& path, const size_type offset = 0, const size_type length = map_entire_file)
-    {
-        std::error_code error;
-        map(path, offset, length, error);
-        if(error) { throw std::system_error(error); }
-    }
+        /**
+         * The same as invoking the `map` function, except any error that may occur
+         * while establishing the mapping is wrapped in a `std::system_error` and is
+         * thrown.
+         */
+        template<typename String>
+        basic_shared_mmap(const String& path, const size_type offset = 0, const size_type length = map_entire_file)
+        {
+            std::error_code error;
+            map(path, offset, length, error);
+            if(error) { throw std::system_error(error); }
+        }
 
-    /**
-     * The same as invoking the `map` function, except any error that may occur
-     * while establishing the mapping is wrapped in a `std::system_error` and is
-     * thrown.
-     */
-    basic_shared_mmap(const handle_type handle, const size_type offset = 0, const size_type length = map_entire_file)
-    {
-        std::error_code error;
-        map(handle, offset, length, error);
-        if(error) { throw std::system_error(error); }
-    }
+        /**
+         * The same as invoking the `map` function, except any error that may occur
+         * while establishing the mapping is wrapped in a `std::system_error` and is
+         * thrown.
+         */
+        basic_shared_mmap(const handle_type handle, const size_type offset = 0, const size_type length = map_entire_file)
+        {
+            std::error_code error;
+            map(handle, offset, length, error);
+            if(error) { throw std::system_error(error); }
+        }
 #endif // __cpp_exceptions
 
-    /**
-     * If this is a read-write mapping and the last reference to the mapping,
-     * the destructor invokes sync. Regardless of the access mode, unmap is
-     * invoked as a final step.
-     */
-    ~basic_shared_mmap() = default;
+        /**
+         * If this is a read-write mapping and the last reference to the mapping,
+         * the destructor invokes sync. Regardless of the access mode, unmap is
+         * invoked as a final step.
+         */
+        ~basic_shared_mmap() = default;
 
-    /** Returns the underlying `std::shared_ptr` instance that holds the mmap. */
-    std::shared_ptr<mmap_type> get_shared_ptr() { return pimpl_; }
+        /** Returns the underlying `std::shared_ptr` instance that holds the mmap. */
+        std::shared_ptr<mmap_type> get_shared_ptr() { return pimpl_; }
 
-    /**
-     * On UNIX systems 'file_handle' and 'mapping_handle' are the same. On Windows,
-     * however, a mapped region of a file gets its own handle, which is returned by
-     * 'mapping_handle'.
-     */
-    handle_type file_handle() const noexcept
-    {
-        return pimpl_ ? pimpl_->file_handle() : invalid_handle;
-    }
-
-    handle_type mapping_handle() const noexcept
-    {
-        return pimpl_ ? pimpl_->mapping_handle() : invalid_handle;
-    }
-
-    /** Returns whether a valid memory mapping has been created. */
-    bool is_open() const noexcept { return pimpl_ && pimpl_->is_open(); }
-
-    /**
-     * Returns true if no mapping was established, that is, conceptually the
-     * same as though the length that was mapped was 0. This function is
-     * provided so that this class has Container semantics.
-     */
-    bool empty() const noexcept { return !pimpl_ || pimpl_->empty(); }
-
-    /**
-     * `size` and `length` both return the logical length, i.e. the number of bytes
-     * user requested to be mapped, while `mapped_length` returns the actual number of
-     * bytes that were mapped which is a multiple of the underlying operating system's
-     * page allocation granularity.
-     */
-    size_type size() const noexcept { return pimpl_ ? pimpl_->length() : 0; }
-    size_type length() const noexcept { return pimpl_ ? pimpl_->length() : 0; }
-    size_type mapped_length() const noexcept
-    {
-        return pimpl_ ? pimpl_->mapped_length() : 0;
-    }
-
-    /**
-     * Returns a pointer to the first requested byte, or `nullptr` if no memory mapping
-     * exists.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > pointer data() noexcept { return pimpl_->data(); }
-    const_pointer data() const noexcept { return pimpl_ ? pimpl_->data() : nullptr; }
-
-    /**
-     * Returns an iterator to the first requested byte, if a valid memory mapping
-     * exists, otherwise this function call is undefined behaviour.
-     */
-    iterator begin() noexcept { return pimpl_->begin(); }
-    const_iterator begin() const noexcept { return pimpl_->begin(); }
-    const_iterator cbegin() const noexcept { return pimpl_->cbegin(); }
-
-    /**
-     * Returns an iterator one past the last requested byte, if a valid memory mapping
-     * exists, otherwise this function call is undefined behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > iterator end() noexcept { return pimpl_->end(); }
-    const_iterator end() const noexcept { return pimpl_->end(); }
-    const_iterator cend() const noexcept { return pimpl_->cend(); }
-
-    /**
-     * Returns a reverse iterator to the last memory mapped byte, if a valid
-     * memory mapping exists, otherwise this function call is undefined
-     * behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > reverse_iterator rbegin() noexcept { return pimpl_->rbegin(); }
-    const_reverse_iterator rbegin() const noexcept { return pimpl_->rbegin(); }
-    const_reverse_iterator crbegin() const noexcept { return pimpl_->crbegin(); }
-
-    /**
-     * Returns a reverse iterator past the first mapped byte, if a valid memory
-     * mapping exists, otherwise this function call is undefined behaviour.
-     */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > reverse_iterator rend() noexcept { return pimpl_->rend(); }
-    const_reverse_iterator rend() const noexcept { return pimpl_->rend(); }
-    const_reverse_iterator crend() const noexcept { return pimpl_->crend(); }
-
-    /**
-     * Returns a reference to the `i`th byte from the first requested byte (as returned
-     * by `data`). If this is invoked when no valid memory mapping has been created
-     * prior to this call, undefined behaviour ensues.
-     */
-    reference operator[](const size_type i) noexcept { return (*pimpl_)[i]; }
-    const_reference operator[](const size_type i) const noexcept { return (*pimpl_)[i]; }
-
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
-     * reason is reported via `error` and the object remains in a state as if this
-     * function hadn't been called.
-     *
-     * `path`, which must be a path to an existing file, is used to retrieve a file
-     * handle (which is closed when the object destructs or `unmap` is called), which is
-     * then used to memory map the requested region. Upon failure, `error` is set to
-     * indicate the reason and the object remains in an unmapped state.
-     *
-     * `offset` is the number of bytes, relative to the start of the file, where the
-     * mapping should begin. When specifying it, there is no need to worry about
-     * providing a value that is aligned with the operating system's page allocation
-     * granularity. This is adjusted by the implementation such that the first requested
-     * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
-     * `offset` from the start of the file.
-     *
-     * `length` is the number of bytes to map. It may be `map_entire_file`, in which
-     * case a mapping of the entire file is created.
-     */
-    template<typename String>
-    void map(const String& path, const size_type offset,
-        const size_type length, std::error_code& error)
-    {
-        map_impl(path, offset, length, error);
-    }
-
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
-     * reason is reported via `error` and the object remains in a state as if this
-     * function hadn't been called.
-     *
-     * `path`, which must be a path to an existing file, is used to retrieve a file
-     * handle (which is closed when the object destructs or `unmap` is called), which is
-     * then used to memory map the requested region. Upon failure, `error` is set to
-     * indicate the reason and the object remains in an unmapped state.
-     *
-     * The entire file is mapped.
-     */
-    template<typename String>
-    void map(const String& path, std::error_code& error)
-    {
-        map_impl(path, 0, map_entire_file, error);
-    }
-
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
-     * reason is reported via `error` and the object remains in a state as if this
-     * function hadn't been called.
-     *
-     * `handle`, which must be a valid file handle, which is used to memory map the
-     * requested region. Upon failure, `error` is set to indicate the reason and the
-     * object remains in an unmapped state.
-     *
-     * `offset` is the number of bytes, relative to the start of the file, where the
-     * mapping should begin. When specifying it, there is no need to worry about
-     * providing a value that is aligned with the operating system's page allocation
-     * granularity. This is adjusted by the implementation such that the first requested
-     * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
-     * `offset` from the start of the file.
-     *
-     * `length` is the number of bytes to map. It may be `map_entire_file`, in which
-     * case a mapping of the entire file is created.
-     */
-    void map(const handle_type handle, const size_type offset,
-        const size_type length, std::error_code& error)
-    {
-        map_impl(handle, offset, length, error);
-    }
-
-    /**
-     * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
-     * reason is reported via `error` and the object remains in a state as if this
-     * function hadn't been called.
-     *
-     * `handle`, which must be a valid file handle, which is used to memory map the
-     * requested region. Upon failure, `error` is set to indicate the reason and the
-     * object remains in an unmapped state.
-     *
-     * The entire file is mapped.
-     */
-    void map(const handle_type handle, std::error_code& error)
-    {
-        map_impl(handle, 0, map_entire_file, error);
-    }
-
-    /**
-     * If a valid memory mapping has been created prior to this call, this call
-     * instructs the kernel to unmap the memory region and disassociate this object
-     * from the file.
-     *
-     * The file handle associated with the file that is mapped is only closed if the
-     * mapping was created using a file path. If, on the other hand, an existing
-     * file handle was used to create the mapping, the file handle is not closed.
-     */
-    void unmap() { if(pimpl_) pimpl_->unmap(); }
-
-    void swap(basic_shared_mmap& other) { pimpl_.swap(other.pimpl_); }
-
-    /** Flushes the memory mapped page to disk. Errors are reported via `error`. */
-    template<
-        access_mode A = AccessMode,
-        typename = typename std::enable_if<A == access_mode::write>::type
-    > void sync(std::error_code& error) { if(pimpl_) pimpl_->sync(error); }
-
-    /** All operators compare the underlying `basic_mmap`'s addresses. */
-
-    friend bool operator==(const basic_shared_mmap& a, const basic_shared_mmap& b)
-    {
-        return a.pimpl_ == b.pimpl_;
-    }
-
-    friend bool operator!=(const basic_shared_mmap& a, const basic_shared_mmap& b)
-    {
-        return !(a == b);
-    }
-
-    friend bool operator<(const basic_shared_mmap& a, const basic_shared_mmap& b)
-    {
-        return a.pimpl_ < b.pimpl_;
-    }
-
-    friend bool operator<=(const basic_shared_mmap& a, const basic_shared_mmap& b)
-    {
-        return a.pimpl_ <= b.pimpl_;
-    }
-
-    friend bool operator>(const basic_shared_mmap& a, const basic_shared_mmap& b)
-    {
-        return a.pimpl_ > b.pimpl_;
-    }
-
-    friend bool operator>=(const basic_shared_mmap& a, const basic_shared_mmap& b)
-    {
-        return a.pimpl_ >= b.pimpl_;
-    }
-
-private:
-    template<typename MappingToken>
-    void map_impl(const MappingToken& token, const size_type offset,
-        const size_type length, std::error_code& error)
-    {
-        if(!pimpl_)
+        /**
+         * On UNIX systems 'file_handle' and 'mapping_handle' are the same. On Windows,
+         * however, a mapped region of a file gets its own handle, which is returned by
+         * 'mapping_handle'.
+         */
+        handle_type file_handle() const noexcept
         {
-            mmap_type mmap = make_mmap<mmap_type>(token, offset, length, error);
-            if(error) { return; }
-            pimpl_ = std::make_shared<mmap_type>(std::move(mmap));
+            return pimpl_ ? pimpl_->file_handle() : invalid_handle;
         }
-        else
+
+        handle_type mapping_handle() const noexcept
         {
-            pimpl_->map(token, offset, length, error);
+            return pimpl_ ? pimpl_->mapping_handle() : invalid_handle;
         }
-    }
-};
+
+        /** Returns whether a valid memory mapping has been created. */
+        bool is_open() const noexcept { return pimpl_ && pimpl_->is_open(); }
+
+        /**
+         * Returns true if no mapping was established, that is, conceptually the
+         * same as though the length that was mapped was 0. This function is
+         * provided so that this class has Container semantics.
+         */
+        bool empty() const noexcept { return !pimpl_ || pimpl_->empty(); }
+
+        /**
+         * `size` and `length` both return the logical length, i.e. the number of bytes
+         * user requested to be mapped, while `mapped_length` returns the actual number of
+         * bytes that were mapped which is a multiple of the underlying operating system's
+         * page allocation granularity.
+         */
+        size_type size() const noexcept { return pimpl_ ? pimpl_->length() : 0; }
+        size_type length() const noexcept { return pimpl_ ? pimpl_->length() : 0; }
+        size_type mapped_length() const noexcept
+        {
+            return pimpl_ ? pimpl_->mapped_length() : 0;
+        }
+
+        /**
+         * Returns a pointer to the first requested byte, or `nullptr` if no memory mapping
+         * exists.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > pointer data() noexcept { return pimpl_->data(); }
+        const_pointer data() const noexcept { return pimpl_ ? pimpl_->data() : nullptr; }
+
+        /**
+         * Returns an iterator to the first requested byte, if a valid memory mapping
+         * exists, otherwise this function call is undefined behaviour.
+         */
+        iterator begin() noexcept { return pimpl_->begin(); }
+        const_iterator begin() const noexcept { return pimpl_->begin(); }
+        const_iterator cbegin() const noexcept { return pimpl_->cbegin(); }
+
+        /**
+         * Returns an iterator one past the last requested byte, if a valid memory mapping
+         * exists, otherwise this function call is undefined behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > iterator end() noexcept { return pimpl_->end(); }
+        const_iterator end() const noexcept { return pimpl_->end(); }
+        const_iterator cend() const noexcept { return pimpl_->cend(); }
+
+        /**
+         * Returns a reverse iterator to the last memory mapped byte, if a valid
+         * memory mapping exists, otherwise this function call is undefined
+         * behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > reverse_iterator rbegin() noexcept { return pimpl_->rbegin(); }
+        const_reverse_iterator rbegin() const noexcept { return pimpl_->rbegin(); }
+        const_reverse_iterator crbegin() const noexcept { return pimpl_->crbegin(); }
+
+        /**
+         * Returns a reverse iterator past the first mapped byte, if a valid memory
+         * mapping exists, otherwise this function call is undefined behaviour.
+         */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > reverse_iterator rend() noexcept { return pimpl_->rend(); }
+        const_reverse_iterator rend() const noexcept { return pimpl_->rend(); }
+        const_reverse_iterator crend() const noexcept { return pimpl_->crend(); }
+
+        /**
+         * Returns a reference to the `i`th byte from the first requested byte (as returned
+         * by `data`). If this is invoked when no valid memory mapping has been created
+         * prior to this call, undefined behaviour ensues.
+         */
+        reference operator[](const size_type i) noexcept { return (*pimpl_)[i]; }
+        const_reference operator[](const size_type i) const noexcept { return (*pimpl_)[i]; }
+
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
+         * reason is reported via `error` and the object remains in a state as if this
+         * function hadn't been called.
+         *
+         * `path`, which must be a path to an existing file, is used to retrieve a file
+         * handle (which is closed when the object destructs or `unmap` is called), which is
+         * then used to memory map the requested region. Upon failure, `error` is set to
+         * indicate the reason and the object remains in an unmapped state.
+         *
+         * `offset` is the number of bytes, relative to the start of the file, where the
+         * mapping should begin. When specifying it, there is no need to worry about
+         * providing a value that is aligned with the operating system's page allocation
+         * granularity. This is adjusted by the implementation such that the first requested
+         * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
+         * `offset` from the start of the file.
+         *
+         * `length` is the number of bytes to map. It may be `map_entire_file`, in which
+         * case a mapping of the entire file is created.
+         */
+        template<typename String>
+        void map(const String& path, const size_type offset,
+                 const size_type length, std::error_code& error)
+        {
+            map_impl(path, offset, length, error);
+        }
+
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
+         * reason is reported via `error` and the object remains in a state as if this
+         * function hadn't been called.
+         *
+         * `path`, which must be a path to an existing file, is used to retrieve a file
+         * handle (which is closed when the object destructs or `unmap` is called), which is
+         * then used to memory map the requested region. Upon failure, `error` is set to
+         * indicate the reason and the object remains in an unmapped state.
+         *
+         * The entire file is mapped.
+         */
+        template<typename String>
+        void map(const String& path, std::error_code& error)
+        {
+            map_impl(path, 0, map_entire_file, error);
+        }
+
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
+         * reason is reported via `error` and the object remains in a state as if this
+         * function hadn't been called.
+         *
+         * `handle`, which must be a valid file handle, which is used to memory map the
+         * requested region. Upon failure, `error` is set to indicate the reason and the
+         * object remains in an unmapped state.
+         *
+         * `offset` is the number of bytes, relative to the start of the file, where the
+         * mapping should begin. When specifying it, there is no need to worry about
+         * providing a value that is aligned with the operating system's page allocation
+         * granularity. This is adjusted by the implementation such that the first requested
+         * byte (as returned by `data` or `begin`), so long as `offset` is valid, will be at
+         * `offset` from the start of the file.
+         *
+         * `length` is the number of bytes to map. It may be `map_entire_file`, in which
+         * case a mapping of the entire file is created.
+         */
+        void map(const handle_type handle, const size_type offset,
+                 const size_type length, std::error_code& error)
+        {
+            map_impl(handle, offset, length, error);
+        }
+
+        /**
+         * Establishes a memory mapping with AccessMode. If the mapping is unsuccesful, the
+         * reason is reported via `error` and the object remains in a state as if this
+         * function hadn't been called.
+         *
+         * `handle`, which must be a valid file handle, which is used to memory map the
+         * requested region. Upon failure, `error` is set to indicate the reason and the
+         * object remains in an unmapped state.
+         *
+         * The entire file is mapped.
+         */
+        void map(const handle_type handle, std::error_code& error)
+        {
+            map_impl(handle, 0, map_entire_file, error);
+        }
+
+        /**
+         * If a valid memory mapping has been created prior to this call, this call
+         * instructs the kernel to unmap the memory region and disassociate this object
+         * from the file.
+         *
+         * The file handle associated with the file that is mapped is only closed if the
+         * mapping was created using a file path. If, on the other hand, an existing
+         * file handle was used to create the mapping, the file handle is not closed.
+         */
+        void unmap() { if(pimpl_) pimpl_->unmap(); }
+
+        void swap(basic_shared_mmap& other) { pimpl_.swap(other.pimpl_); }
+
+        /** Flushes the memory mapped page to disk. Errors are reported via `error`. */
+        template<
+                access_mode A = AccessMode,
+                typename = typename std::enable_if<A == access_mode::write>::type
+        > void sync(std::error_code& error) { if(pimpl_) pimpl_->sync(error); }
+
+        /** All operators compare the underlying `basic_mmap`'s addresses. */
+
+        friend bool operator==(const basic_shared_mmap& a, const basic_shared_mmap& b)
+        {
+            return a.pimpl_ == b.pimpl_;
+        }
+
+        friend bool operator!=(const basic_shared_mmap& a, const basic_shared_mmap& b)
+        {
+            return !(a == b);
+        }
+
+        friend bool operator<(const basic_shared_mmap& a, const basic_shared_mmap& b)
+        {
+            return a.pimpl_ < b.pimpl_;
+        }
+
+        friend bool operator<=(const basic_shared_mmap& a, const basic_shared_mmap& b)
+        {
+            return a.pimpl_ <= b.pimpl_;
+        }
+
+        friend bool operator>(const basic_shared_mmap& a, const basic_shared_mmap& b)
+        {
+            return a.pimpl_ > b.pimpl_;
+        }
+
+        friend bool operator>=(const basic_shared_mmap& a, const basic_shared_mmap& b)
+        {
+            return a.pimpl_ >= b.pimpl_;
+        }
+
+    private:
+        template<typename MappingToken>
+        void map_impl(const MappingToken& token, const size_type offset,
+                      const size_type length, std::error_code& error)
+        {
+            if(!pimpl_)
+            {
+                mmap_type mmap = make_mmap<mmap_type>(token, offset, length, error);
+                if(error) { return; }
+                pimpl_ = std::make_shared<mmap_type>(std::move(mmap));
+            }
+            else
+            {
+                pimpl_->map(token, offset, length, error);
+            }
+        }
+    };
 
 /**
  * This is the basis for all read-only mmap objects and should be preferred over
  * directly using basic_shared_mmap.
  */
-template<typename ByteT>
-using basic_shared_mmap_source = basic_shared_mmap<access_mode::read, ByteT>;
+    template<typename ByteT>
+    using basic_shared_mmap_source = basic_shared_mmap<access_mode::read, ByteT>;
 
 /**
  * This is the basis for all read-write mmap objects and should be preferred over
  * directly using basic_shared_mmap.
  */
-template<typename ByteT>
-using basic_shared_mmap_sink = basic_shared_mmap<access_mode::write, ByteT>;
+    template<typename ByteT>
+    using basic_shared_mmap_sink = basic_shared_mmap<access_mode::write, ByteT>;
 
 /**
  * These aliases cover the most common use cases, both representing a raw byte stream
  * (either with a char or an unsigned char/uint8_t).
  */
-using shared_mmap_source = basic_shared_mmap_source<char>;
-using shared_ummap_source = basic_shared_mmap_source<unsigned char>;
+    using shared_mmap_source = basic_shared_mmap_source<char>;
+    using shared_ummap_source = basic_shared_mmap_source<unsigned char>;
 
-using shared_mmap_sink = basic_shared_mmap_sink<char>;
-using shared_ummap_sink = basic_shared_mmap_sink<unsigned char>;
+    using shared_mmap_sink = basic_shared_mmap_sink<char>;
+    using shared_ummap_sink = basic_shared_mmap_sink<unsigned char>;
 
 } // namespace mio
 
@@ -1838,9 +1838,9 @@ using shared_ummap_sink = basic_shared_mmap_sink<unsigned char>;
 # include <unistd.h>
 #endif
 
- /** Helper macro which should be #defined as "inline"
-  *  in the single header version
-  */
+/** Helper macro which should be #defined as "inline"
+ *  in the single header version
+ */
 #define CSV_INLINE inline
 
 #include <type_traits>
@@ -1960,55 +1960,55 @@ using shared_ummap_sink = basic_shared_mmap_sink<unsigned char>;
 
 namespace nonstd {
 
-template< class CharT, class Traits, class Allocator = std::allocator<CharT> >
-std::basic_string<CharT, Traits, Allocator>
-to_string( std::basic_string_view<CharT, Traits> v, Allocator const & a = Allocator() )
-{
-    return std::basic_string<CharT,Traits, Allocator>( v.begin(), v.end(), a );
-}
+    template< class CharT, class Traits, class Allocator = std::allocator<CharT> >
+    std::basic_string<CharT, Traits, Allocator>
+    to_string( std::basic_string_view<CharT, Traits> v, Allocator const & a = Allocator() )
+    {
+        return std::basic_string<CharT,Traits, Allocator>( v.begin(), v.end(), a );
+    }
 
-template< class CharT, class Traits, class Allocator >
-std::basic_string_view<CharT, Traits>
-to_string_view( std::basic_string<CharT, Traits, Allocator> const & s )
-{
-    return std::basic_string_view<CharT, Traits>( s.data(), s.size() );
-}
+    template< class CharT, class Traits, class Allocator >
+    std::basic_string_view<CharT, Traits>
+    to_string_view( std::basic_string<CharT, Traits, Allocator> const & s )
+    {
+        return std::basic_string_view<CharT, Traits>( s.data(), s.size() );
+    }
 
 // Literal operators sv and _sv:
 
 #if nssv_CONFIG_STD_SV_OPERATOR
 
-using namespace std::literals::string_view_literals;
+    using namespace std::literals::string_view_literals;
 
 #endif
 
 #if nssv_CONFIG_USR_SV_OPERATOR
 
-inline namespace literals {
-inline namespace string_view_literals {
+    inline namespace literals {
+        inline namespace string_view_literals {
 
 
-constexpr std::string_view operator "" _sv( const char* str, size_t len ) noexcept  // (1)
-{
-    return std::string_view{ str, len };
-}
+            constexpr std::string_view operator "" _sv( const char* str, size_t len ) noexcept  // (1)
+            {
+                return std::string_view{ str, len };
+            }
 
-constexpr std::u16string_view operator "" _sv( const char16_t* str, size_t len ) noexcept  // (2)
-{
-    return std::u16string_view{ str, len };
-}
+            constexpr std::u16string_view operator "" _sv( const char16_t* str, size_t len ) noexcept  // (2)
+            {
+                return std::u16string_view{ str, len };
+            }
 
-constexpr std::u32string_view operator "" _sv( const char32_t* str, size_t len ) noexcept  // (3)
-{
-    return std::u32string_view{ str, len };
-}
+            constexpr std::u32string_view operator "" _sv( const char32_t* str, size_t len ) noexcept  // (3)
+            {
+                return std::u32string_view{ str, len };
+            }
 
-constexpr std::wstring_view operator "" _sv( const wchar_t* str, size_t len ) noexcept  // (4)
-{
-    return std::wstring_view{ str, len };
-}
+            constexpr std::wstring_view operator "" _sv( const wchar_t* str, size_t len ) noexcept  // (4)
+            {
+                return std::wstring_view{ str, len };
+            }
 
-}} // namespace literals::string_view_literals
+        }} // namespace literals::string_view_literals
 
 #endif // nssv_CONFIG_USR_SV_OPERATOR
 
@@ -2018,22 +2018,22 @@ constexpr std::wstring_view operator "" _sv( const wchar_t* str, size_t len ) no
 
 namespace nonstd {
 
-using std::string_view;
-using std::wstring_view;
-using std::u16string_view;
-using std::u32string_view;
-using std::basic_string_view;
+    using std::string_view;
+    using std::wstring_view;
+    using std::u16string_view;
+    using std::u32string_view;
+    using std::basic_string_view;
 
 // literal "sv" and "_sv", see above
 
-using std::operator==;
-using std::operator!=;
-using std::operator<;
-using std::operator<=;
-using std::operator>;
-using std::operator>=;
+    using std::operator==;
+    using std::operator!=;
+    using std::operator<;
+    using std::operator<=;
+    using std::operator>;
+    using std::operator>=;
 
-using std::operator<<;
+    using std::operator<<;
 
 } // namespace nonstd
 
@@ -3166,9 +3166,9 @@ nssv_RESTORE_WARNINGS()
 #endif // NONSTD_SV_LITE_H_INCLUDED
 
 
-  // If there is another version of Hedley, then the newer one 
-  // takes precedence.
-  // See: https://github.com/nemequ/hedley
+// If there is another version of Hedley, then the newer one
+// takes precedence.
+// See: https://github.com/nemequ/hedley
 /* Hedley - https://nemequ.github.io/hedley
  * Created by Evan Nemerson <evan@nemerson.com>
  *
@@ -4705,22 +4705,22 @@ namespace csv {
 
 #ifdef CSV_HAS_CXX17
 #include <string_view>
-     /** @typedef string_view
-      *  The string_view class used by this library.
-      */
+    /** @typedef string_view
+     *  The string_view class used by this library.
+     */
     using string_view = std::string_view;
 #else
-     /** @typedef string_view
+    /** @typedef string_view
       *  The string_view class used by this library.
       */
     using string_view = nonstd::string_view;
 #endif
 
 #ifdef CSV_HAS_CXX17
-    #define IF_CONSTEXPR if constexpr
-    #define CONSTEXPR_VALUE constexpr
+#define IF_CONSTEXPR if constexpr
+#define CONSTEXPR_VALUE constexpr
 
-    #define CONSTEXPR_17 constexpr
+#define CONSTEXPR_17 constexpr
 #else
     #define IF_CONSTEXPR if
     #define CONSTEXPR_VALUE const
@@ -4732,8 +4732,8 @@ namespace csv {
     template<bool B, class T = void>
     using enable_if_t = std::enable_if_t<B, T>;
 
-    #define CONSTEXPR_14 constexpr
-    #define CONSTEXPR_VALUE_14 constexpr
+#define CONSTEXPR_14 constexpr
+#define CONSTEXPR_VALUE_14 constexpr
 #else
     template<bool B, class T = void>
     using enable_if_t = typename std::enable_if<B, T>::type;
@@ -4745,11 +4745,11 @@ namespace csv {
     // Resolves g++ bug with regard to constexpr methods
     // See: https://stackoverflow.com/questions/36489369/constexpr-non-static-member-function-with-non-constexpr-constructor-gcc-clang-d
 #if defined __GNUC__ && !defined __clang__
-    #if (__GNUC__ >= 7 &&__GNUC_MINOR__ >= 2) || (__GNUC__ >= 8)
-        #define CONSTEXPR constexpr
-    #endif
-    #else
-        #ifdef CSV_HAS_CXX17
+#if (__GNUC__ >= 7 &&__GNUC_MINOR__ >= 2) || (__GNUC__ >= 8)
+#define CONSTEXPR constexpr
+#endif
+#else
+    #ifdef CSV_HAS_CXX17
         #define CONSTEXPR constexpr
     #endif
 #endif
@@ -4777,7 +4777,7 @@ namespace csv {
         }
 
         const int PAGE_SIZE = getpagesize();
-#elif defined(__linux__) 
+#elif defined(__linux__)
         const int PAGE_SIZE = getpagesize();
 #else
         /** Size of a memory page in bytes. Used by
@@ -4912,7 +4912,7 @@ namespace csv {
     };
 
     /** Stores information about how to parse a CSV file.
-     *  Can be used to construct a csv::CSVReader. 
+     *  Can be used to construct a csv::CSVReader.
      */
     class CSVFormat {
     public:
@@ -4926,7 +4926,7 @@ namespace csv {
         CSVFormat& delimiter(char delim);
 
         /** Sets a list of potential delimiters
-         *  
+         *
          *  @throws `std::runtime_error` thrown if trim, quote, or possible delimiting characters overlap
          *  @param[in] delim An array of possible delimiters to try parsing the CSV with
          */
@@ -4985,7 +4985,7 @@ namespace csv {
             return *this;
         }
 
-        #ifndef DOXYGEN_SHOULD_SKIP_THIS
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
         char get_delim() const {
             // This error should never be received by end users.
             if (this->possible_delimiters.size() > 1) {
@@ -5001,14 +5001,14 @@ namespace csv {
         std::vector<char> get_possible_delims() const { return this->possible_delimiters; }
         std::vector<char> get_trim_chars() const { return this->trim_chars; }
         CONSTEXPR VariableColumnPolicy get_variable_column_policy() const { return this->variable_column_policy; }
-        #endif
-        
+#endif
+
         /** CSVFormat for guessing the delimiter */
         CSV_INLINE static CSVFormat guess_csv() {
             CSVFormat format;
             format.delimiter({ ',', '|', '\t', ';', '^' })
-                .quote('"')
-                .header_row(0);
+                    .quote('"')
+                    .header_row(0);
 
             return format;
         }
@@ -5019,7 +5019,7 @@ namespace csv {
 
         friend CSVReader;
         friend internals::IBasicCSVParser;
-        
+
     private:
         /**< Throws an error if delimiters and trim characters overlap */
         void assert_no_char_overlap();
@@ -5098,11 +5098,11 @@ namespace csv {
         HEDLEY_CONST CONSTEXPR_14
         long double pow10(const T& n) noexcept {
             long double multiplicand = n > 0 ? 10 : 0.1,
-                ret = 1;
+                    ret = 1;
 
             // Make all numbers positive
             T iterations = n > 0 ? n : -n;
-            
+
             for (T i = 0; i < iterations; i++) {
                 ret *= multiplicand;
             }
@@ -5115,7 +5115,7 @@ namespace csv {
         HEDLEY_CONST CONSTEXPR_14
         long double pow10(const unsigned& n) noexcept {
             long double multiplicand = n > 0 ? 10 : 0.1,
-                ret = 1;
+                    ret = 1;
 
             for (unsigned i = 0; i < n; i++) {
                 ret *= multiplicand;
@@ -5127,14 +5127,14 @@ namespace csv {
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
         /** Private site-indexed array mapping byte sizes to an integer size enum */
         constexpr DataType int_type_arr[8] = {
-            DataType::CSV_INT8,  // 1
-            DataType::CSV_INT16, // 2
-            DataType::UNKNOWN,
-            DataType::CSV_INT32, // 4
-            DataType::UNKNOWN,
-            DataType::UNKNOWN,
-            DataType::UNKNOWN,
-            DataType::CSV_INT64  // 8
+                DataType::CSV_INT8,  // 1
+                DataType::CSV_INT16, // 2
+                DataType::UNKNOWN,
+                DataType::CSV_INT32, // 4
+                DataType::UNKNOWN,
+                DataType::UNKNOWN,
+                DataType::UNKNOWN,
+                DataType::CSV_INT64  // 8
         };
 
         template<typename T>
@@ -5162,7 +5162,7 @@ namespace csv {
         template<size_t Bytes>
         CONSTEXPR_14 long double get_int_max() {
             static_assert(Bytes == 1 || Bytes == 2 || Bytes == 4 || Bytes == 8,
-                "Bytes must be a power of 2 below 8.");
+                          "Bytes must be a power of 2 below 8.");
 
             IF_CONSTEXPR (sizeof(signed char) == Bytes) {
                 return (long double)std::numeric_limits<signed char>::max();
@@ -5193,7 +5193,7 @@ namespace csv {
         template<size_t Bytes>
         CONSTEXPR_14 long double get_uint_max() {
             static_assert(Bytes == 1 || Bytes == 2 || Bytes == 4 || Bytes == 8,
-                "Bytes must be a power of 2 below 8.");
+                          "Bytes must be a power of 2 below 8.");
 
             IF_CONSTEXPR(sizeof(unsigned char) == Bytes) {
                 return (long double)std::numeric_limits<unsigned char>::max();
@@ -5248,9 +5248,9 @@ namespace csv {
          */
         HEDLEY_PRIVATE CONSTEXPR_14
         DataType _process_potential_exponential(
-            csv::string_view exponential_part,
-            const long double& coeff,
-            long double * const out) {
+                csv::string_view exponential_part,
+                const long double& coeff,
+                long double * const out) {
             long double exponent = 0;
             auto result = data_type(exponential_part, &exponent);
 
@@ -5301,89 +5301,89 @@ namespace csv {
                 return DataType::CSV_NULL;
 
             bool ws_allowed = true,
-                neg_allowed = true,
-                dot_allowed = true,
-                digit_allowed = true,
-                has_digit = false,
-                prob_float = false;
+                    neg_allowed = true,
+                    dot_allowed = true,
+                    digit_allowed = true,
+                    has_digit = false,
+                    prob_float = false;
 
             unsigned places_after_decimal = 0;
             long double integral_part = 0,
-                decimal_part = 0;
+                    decimal_part = 0;
 
             for (size_t i = 0, ilen = in.size(); i < ilen; i++) {
                 const char& current = in[i];
 
                 switch (current) {
-                case ' ':
-                    if (!ws_allowed) {
-                        if (isdigit(in[i - 1])) {
-                            digit_allowed = false;
-                            ws_allowed = true;
+                    case ' ':
+                        if (!ws_allowed) {
+                            if (isdigit(in[i - 1])) {
+                                digit_allowed = false;
+                                ws_allowed = true;
+                            }
+                            else {
+                                // Ex: '510 123 4567'
+                                return DataType::CSV_STRING;
+                            }
+                        }
+                        break;
+                    case '-':
+                        if (!neg_allowed) {
+                            // Ex: '510-123-4567'
+                            return DataType::CSV_STRING;
+                        }
+
+                        neg_allowed = false;
+                        break;
+                    case '.':
+                        if (!dot_allowed) {
+                            return DataType::CSV_STRING;
+                        }
+
+                        dot_allowed = false;
+                        prob_float = true;
+                        break;
+                    case 'e':
+                    case 'E':
+                        // Process scientific notation
+                        if (prob_float || (i && i + 1 < ilen && isdigit(in[i - 1]))) {
+                            size_t exponent_start_idx = i + 1;
+                            prob_float = true;
+
+                            // Strip out plus sign
+                            if (in[i + 1] == '+') {
+                                exponent_start_idx++;
+                            }
+
+                            return _process_potential_exponential(
+                                    in.substr(exponent_start_idx),
+                                    neg_allowed ? integral_part + decimal_part : -(integral_part + decimal_part),
+                                    out
+                            );
+                        }
+
+                        return DataType::CSV_STRING;
+                        break;
+                    default:
+                        short digit = static_cast<short>(current - '0');
+                        if (digit >= 0 && digit <= 9) {
+                            // Process digit
+                            has_digit = true;
+
+                            if (!digit_allowed)
+                                return DataType::CSV_STRING;
+                            else if (ws_allowed) // Ex: '510 456'
+                                ws_allowed = false;
+
+                            // Build current number
+                            if (prob_float)
+                                decimal_part += digit / pow10(++places_after_decimal);
+                            else
+                                integral_part = (integral_part * 10) + digit;
                         }
                         else {
-                            // Ex: '510 123 4567'
                             return DataType::CSV_STRING;
                         }
-                    }
-                    break;
-                case '-':
-                    if (!neg_allowed) {
-                        // Ex: '510-123-4567'
-                        return DataType::CSV_STRING;
-                    }
-
-                    neg_allowed = false;
-                    break;
-                case '.':
-                    if (!dot_allowed) {
-                        return DataType::CSV_STRING;
-                    }
-
-                    dot_allowed = false;
-                    prob_float = true;
-                    break;
-                case 'e':
-                case 'E':
-                    // Process scientific notation
-                    if (prob_float || (i && i + 1 < ilen && isdigit(in[i - 1]))) {
-                        size_t exponent_start_idx = i + 1;
-                        prob_float = true;
-
-                        // Strip out plus sign
-                        if (in[i + 1] == '+') {
-                            exponent_start_idx++;
-                        }
-
-                        return _process_potential_exponential(
-                            in.substr(exponent_start_idx),
-                            neg_allowed ? integral_part + decimal_part : -(integral_part + decimal_part),
-                            out
-                        );
-                    }
-
-                    return DataType::CSV_STRING;
-                    break;
-                default:
-                    short digit = static_cast<short>(current - '0');
-                    if (digit >= 0 && digit <= 9) {
-                        // Process digit
-                        has_digit = true;
-
-                        if (!digit_allowed)
-                            return DataType::CSV_STRING;
-                        else if (ws_allowed) // Ex: '510 456'
-                            ws_allowed = false;
-
-                        // Build current number
-                        if (prob_float)
-                            decimal_part += digit / pow10(++places_after_decimal);
-                        else
-                            integral_part = (integral_part * 10) + digit;
-                    }
-                    else {
-                        return DataType::CSV_STRING;
-                    }
                 }
             }
 
@@ -5410,9 +5410,9 @@ namespace csv {
         static const std::string ERROR_NAN = "Not a number.";
         static const std::string ERROR_OVERFLOW = "Overflow error.";
         static const std::string ERROR_FLOAT_TO_INT =
-            "Attempted to convert a floating point value to an integral type.";
+                "Attempted to convert a floating point value to an integral type.";
         static const std::string ERROR_NEG_TO_UNSIGNED = "Negative numbers cannot be converted to unsigned types.";
-    
+
         std::string json_escape_string(csv::string_view s) noexcept;
 
         /** A barebones class used for describing CSV fields */
@@ -5428,7 +5428,7 @@ namespace csv {
             size_t start;
 
             /** The length of the row, ignoring quote escape characters */
-            size_t length; 
+            size_t length;
 
             /** Whether or not the field contains an escaped quote */
             bool has_double_quote;
@@ -5449,7 +5449,7 @@ namespace csv {
         public:
             /** Construct a CSVFieldList which allocates blocks of a certain size */
             CSVFieldList(size_t single_buffer_capacity = (size_t)(internals::PAGE_SIZE / sizeof(RawCSVField))) :
-                _single_buffer_capacity(single_buffer_capacity) {
+                    _single_buffer_capacity(single_buffer_capacity) {
                 this->allocate();
             }
 
@@ -5458,7 +5458,7 @@ namespace csv {
 
             // CSVFieldArrays may be moved
             CSVFieldList(CSVFieldList&& other) :
-                _single_buffer_capacity(other._single_buffer_capacity) {
+                    _single_buffer_capacity(other._single_buffer_capacity) {
                 buffers = std::move(other.buffers);
                 _current_buffer_size = other._current_buffer_size;
                 _back = other._back;
@@ -5620,7 +5620,7 @@ namespace csv {
         CONSTEXPR_14 bool operator==(T other) const noexcept
         {
             static_assert(std::is_arithmetic<T>::value,
-                "T should be a numeric value.");
+                          "T should be a numeric value.");
 
             if (this->_type != DataType::UNKNOWN) {
                 if (this->_type == DataType::CSV_STRING) {
@@ -5684,11 +5684,11 @@ namespace csv {
         friend internals::IBasicCSVParser;
 
         CSVRow() = default;
-        
+
         /** Construct a CSVRow from a RawCSVDataPtr */
         CSVRow(internals::RawCSVDataPtr _data) : data(_data) {}
         CSVRow(internals::RawCSVDataPtr _data, size_t _data_start, size_t _field_bounds)
-            : data(_data), data_start(_data_start), fields_start(_field_bounds) {}
+                : data(_data), data_start(_data_start), fields_start(_field_bounds) {}
 
         /** Indicates whether row is empty or not */
         CONSTEXPR bool empty() const noexcept { return this->size() == 0; }
@@ -5770,7 +5770,7 @@ namespace csv {
         /** @name Iterators
          *  @brief Each iterator points to a CSVField object.
          */
-         ///@{
+        ///@{
         iterator begin() const;
         iterator end() const noexcept;
         reverse_iterator rbegin() const noexcept;
@@ -6127,16 +6127,16 @@ namespace csv {
 
         public:
             StreamParser(TStream& source,
-                const CSVFormat& format,
-                const ColNamesPtr& col_names = nullptr
+                         const CSVFormat& format,
+                         const ColNamesPtr& col_names = nullptr
             ) : IBasicCSVParser(format, col_names), _source(std::move(source)) {};
 
             StreamParser(
-                TStream& source,
-                internals::ParseFlagMap parse_flags,
-                internals::WhitespaceMap ws_flags) :
-                IBasicCSVParser(parse_flags, ws_flags),
-                _source(std::move(source))
+                    TStream& source,
+                    internals::ParseFlagMap parse_flags,
+                    internals::WhitespaceMap ws_flags) :
+                    IBasicCSVParser(parse_flags, ws_flags),
+                    _source(std::move(source))
             {};
 
             ~StreamParser() {}
@@ -6197,8 +6197,8 @@ namespace csv {
         class MmapParser : public IBasicCSVParser {
         public:
             MmapParser(csv::string_view filename,
-                const CSVFormat& format,
-                const ColNamesPtr& col_names = nullptr
+                       const CSVFormat& format,
+                       const ColNamesPtr& col_names = nullptr
             ) : IBasicCSVParser(format, col_names) {
                 this->_filename = filename.data();
                 this->source_size = get_file_size(filename);
@@ -6235,12 +6235,12 @@ namespace csv {
     }
 
     std::vector<std::string> get_col_names(
-        csv::string_view filename,
-        const CSVFormat format = CSVFormat::guess_csv());
+            csv::string_view filename,
+            const CSVFormat format = CSVFormat::guess_csv());
 
     /** Guess the delimiter used by a delimiter-separated values file */
     CSVGuessResult guess_format(csv::string_view filename,
-        const std::vector<char>& delims = { ',', '|', '\t', ';', '^', '~' });
+                                const std::vector<char>& delims = { ',', '|', '\t', ';', '^', '~' });
 
     /** @class CSVReader
      *  @brief Main class for parsing CSVs from files and in-memory sources
@@ -6263,13 +6263,13 @@ namespace csv {
          */
         class iterator {
         public:
-            #ifndef DOXYGEN_SHOULD_SKIP_THIS
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
             using value_type = CSVRow;
             using difference_type = std::ptrdiff_t;
             using pointer = CSVRow * ;
             using reference = CSVRow & ;
             using iterator_category = std::input_iterator_tag;
-            #endif
+#endif
 
             iterator() = default;
             iterator(CSVReader* reader) : daddy(reader) {};
@@ -6302,7 +6302,7 @@ namespace csv {
         /** @name Constructors
          *  Constructors for iterating over large files and parsing in-memory sources.
          */
-         ///@{
+        ///@{
         CSVReader(csv::string_view filename, CSVFormat format = CSVFormat::guess_csv());
 
         /** Allows parsing stream sources such as `std::stringstream` or `std::ifstream`
@@ -6312,7 +6312,7 @@ namespace csv {
          *          specified.
          */
         template<typename TStream,
-            csv::enable_if_t<std::is_base_of<std::istream, TStream>::value, int> = 0>
+                csv::enable_if_t<std::is_base_of<std::istream, TStream>::value, int> = 0>
         CSVReader(TStream& source, CSVFormat format = CSVFormat()) : _format(format) {
             using Parser = internals::StreamParser<TStream>;
 
@@ -6320,7 +6320,7 @@ namespace csv {
                 this->set_col_names(format.col_names);
 
             this->parser = std::unique_ptr<Parser>(
-                new Parser(source, format, col_names)); // For C++11
+                    new Parser(source, format, col_names)); // For C++11
             this->initial_read();
         }
         ///@}
@@ -6501,7 +6501,7 @@ namespace csv {
     /** @name Shorthand Parsing Functions
      *  @brief Convienience functions for parsing small strings
      */
-     ///@{
+    ///@{
     CSVReader operator ""_csv(const char*, size_t);
     CSVReader operator ""_csv_no_header(const char*, size_t);
     CSVReader parse(csv::string_view in, CSVFormat format = CSVFormat());
@@ -6513,7 +6513,7 @@ namespace csv {
     std::unordered_map<std::string, DataType> csv_data_types(const std::string&);
     CSVFileInfo get_file_info(const std::string& filename);
     int get_col_pos(csv::string_view filename, csv::string_view col_name,
-        const CSVFormat& format = CSVFormat::guess_csv());
+                    const CSVFormat& format = CSVFormat::guess_csv());
     ///@}
 }
 /** @file
@@ -6534,7 +6534,7 @@ namespace csv {
 
         /** to_string() for unsigned integers */
         template<typename T,
-            csv::enable_if_t<std::is_unsigned<T>::value, int> = 0>
+                csv::enable_if_t<std::is_unsigned<T>::value, int> = 0>
         inline std::string to_string(T value) {
             std::string digits_reverse = "";
 
@@ -6550,8 +6550,8 @@ namespace csv {
 
         /** to_string() for signed integers */
         template<
-            typename T,
-            csv::enable_if_t<std::is_integral<T>::value && std::is_signed<T>::value, int> = 0
+                typename T,
+                csv::enable_if_t<std::is_integral<T>::value && std::is_signed<T>::value, int> = 0
         >
         inline std::string to_string(T value) {
             if (value >= 0)
@@ -6562,45 +6562,45 @@ namespace csv {
 
         /** to_string() for floating point numbers */
         template<
-            typename T,
-            csv::enable_if_t<std::is_floating_point<T>::value, int> = 0
+                typename T,
+                csv::enable_if_t<std::is_floating_point<T>::value, int> = 0
         >
-            inline std::string to_string(T value) {
-                std::string result;
+        inline std::string to_string(T value) {
+            std::string result;
 
-                T integral_part;
-                T fractional_part = std::abs(std::modf(value, &integral_part));
-                integral_part = std::abs(integral_part);
+            T integral_part;
+            T fractional_part = std::abs(std::modf(value, &integral_part));
+            integral_part = std::abs(integral_part);
 
-                // Integral part
-                if (value < 0) result = "-";
+            // Integral part
+            if (value < 0) result = "-";
 
-                if (integral_part == 0) {
-                    result = "0";
+            if (integral_part == 0) {
+                result = "0";
+            }
+            else {
+                for (int n_digits = (int)(std::log(integral_part) / std::log(10));
+                     n_digits + 1 > 0; n_digits --) {
+                    int digit = (int)(std::fmod(integral_part, pow10(n_digits + 1)) / pow10(n_digits));
+                    result += (char)('0' + digit);
                 }
-                else {
-                    for (int n_digits = (int)(std::log(integral_part) / std::log(10));
-                         n_digits + 1 > 0; n_digits --) {
-                        int digit = (int)(std::fmod(integral_part, pow10(n_digits + 1)) / pow10(n_digits));
-                        result += (char)('0' + digit);
-                    }
-                }
+            }
 
-                // Decimal part
-                result += ".";
+            // Decimal part
+            result += ".";
 
-                if (fractional_part > 0) {
-                    fractional_part *= (T)(pow10(DECIMAL_PLACES));
-                    for (int n_digits = DECIMAL_PLACES; n_digits > 0; n_digits--) {
-                        int digit = (int)(std::fmod(fractional_part, pow10(n_digits)) / pow10(n_digits - 1));
-                        result += (char)('0' + digit);
-                    }
+            if (fractional_part > 0) {
+                fractional_part *= (T)(pow10(DECIMAL_PLACES));
+                for (int n_digits = DECIMAL_PLACES; n_digits > 0; n_digits--) {
+                    int digit = (int)(std::fmod(fractional_part, pow10(n_digits)) / pow10(n_digits - 1));
+                    result += (char)('0' + digit);
                 }
-                else {
-                    result += "0";
-                }
+            }
+            else {
+                result += "0";
+            }
 
-                return result;
+            return result;
         }
     }
 
@@ -6614,11 +6614,11 @@ namespace csv {
 
     /** @name CSV Writing */
     ///@{
-    /** 
+    /**
      *  Class for writing delimiter separated values files
      *
      *  To write formatted strings, one should
-     *   -# Initialize a DelimWriter with respect to some output stream 
+     *   -# Initialize a DelimWriter with respect to some output stream
      *   -# Call write_row() on std::vector<std::string>s of unformatted text
      *
      *  @tparam OutputStream The output stream, e.g. `std::ofstream`, `std::stringstream`
@@ -6649,7 +6649,7 @@ namespace csv {
         */
 
         DelimWriter(OutputStream& _out, bool _quote_minimal = true)
-            : out(_out), quote_minimal(_quote_minimal) {};
+                : out(_out), quote_minimal(_quote_minimal) {};
 
         /** Construct a DelimWriter over the file
          *
@@ -6692,16 +6692,16 @@ namespace csv {
 
         /**
          * @tparam T A container such as std::vector, std::deque, or std::list
-         * 
+         *
          * @copydoc operator<<
          */
         template<
-            typename T, typename Alloc, template <typename, typename> class Container,
+                typename T, typename Alloc, template <typename, typename> class Container,
 
-            // Avoid conflicting with tuples with two elements
-            csv::enable_if_t<std::is_class<Alloc>::value, int> = 0
+                // Avoid conflicting with tuples with two elements
+                csv::enable_if_t<std::is_class<Alloc>::value, int> = 0
         >
-            DelimWriter& operator<<(const Container<T, Alloc>& record) {
+        DelimWriter& operator<<(const Container<T, Alloc>& record) {
             const size_t ilen = record.size();
             size_t i = 0;
             for (const auto& field : record) {
@@ -6723,28 +6723,28 @@ namespace csv {
 
     private:
         template<
-            typename T,
-            csv::enable_if_t<
-                !std::is_convertible<T, std::string>::value
-                && !std::is_convertible<T, csv::string_view>::value
-            , int> = 0
+                typename T,
+                csv::enable_if_t<
+                        !std::is_convertible<T, std::string>::value
+                        && !std::is_convertible<T, csv::string_view>::value
+                        , int> = 0
         >
         std::string csv_escape(T in) {
             return internals::to_string(in);
         }
 
         template<
-            typename T,
-            csv::enable_if_t<
-                std::is_convertible<T, std::string>::value
-                || std::is_convertible<T, csv::string_view>::value
-            , int> = 0
+                typename T,
+                csv::enable_if_t<
+                        std::is_convertible<T, std::string>::value
+                        || std::is_convertible<T, csv::string_view>::value
+                        , int> = 0
         >
         std::string csv_escape(T in) {
             IF_CONSTEXPR(std::is_convertible<T, csv::string_view>::value) {
                 return _csv_escape(in);
             }
-            
+
             return _csv_escape(std::string(in));
         }
 
@@ -6895,8 +6895,8 @@ namespace csv {
 #pragma region IBasicCVParser
 #endif
         CSV_INLINE IBasicCSVParser::IBasicCSVParser(
-            const CSVFormat& format,
-            const ColNamesPtr& col_names
+                const CSVFormat& format,
+                const ColNamesPtr& col_names
         ) : _col_names(col_names) {
             if (format.no_quote) {
                 _parse_flags = internals::make_parse_flags(format.get_delim());
@@ -6906,7 +6906,7 @@ namespace csv {
             }
 
             _ws_flags = internals::make_ws_flags(
-                format.trim_chars.data(), format.trim_chars.size()
+                    format.trim_chars.data(), format.trim_chars.size()
             );
         }
 
@@ -6914,9 +6914,9 @@ namespace csv {
             using internals::ParseFlags;
 
             bool empty_last_field = this->data_ptr
-                && this->data_ptr->_data
-                && !this->data_ptr->data.empty()
-                && parse_flag(this->data_ptr->data.back()) == ParseFlags::DELIMITER;
+                                    && this->data_ptr->_data
+                                    && !this->data_ptr->data.empty()
+                                    && parse_flag(this->data_ptr->data.back()) == ParseFlags::DELIMITER;
 
             // Push field
             if (this->field_length > 0 || empty_last_field) {
@@ -6958,17 +6958,17 @@ namespace csv {
             // Update
             if (field_has_double_quote) {
                 fields->emplace_back(
-                    field_start == UNINITIALIZED_FIELD ? 0 : (unsigned int)field_start,
-                    field_length,
-                    true
+                        field_start == UNINITIALIZED_FIELD ? 0 : (unsigned int)field_start,
+                        field_length,
+                        true
                 );
                 field_has_double_quote = false;
 
             }
             else {
                 fields->emplace_back(
-                    field_start == UNINITIALIZED_FIELD ? 0 : (unsigned int)field_start,
-                    field_length
+                        field_start == UNINITIALIZED_FIELD ? 0 : (unsigned int)field_start,
+                        field_length
                 );
             }
 
@@ -6992,68 +6992,68 @@ namespace csv {
             auto& in = this->data_ptr->data;
             while (this->data_pos < in.size()) {
                 switch (compound_parse_flag(in[this->data_pos])) {
-                case ParseFlags::DELIMITER:
-                    this->push_field();
-                    this->data_pos++;
-                    break;
+                    case ParseFlags::DELIMITER:
+                        this->push_field();
+                        this->data_pos++;
+                        break;
 
-                case ParseFlags::NEWLINE:
-                    this->data_pos++;
-
-                    // Catches CRLF (or LFLF)
-                    if (this->data_pos < in.size() && parse_flag(in[this->data_pos]) == ParseFlags::NEWLINE)
+                    case ParseFlags::NEWLINE:
                         this->data_pos++;
 
-                    // End of record -> Write record
-                    this->push_field();
-                    this->push_row();
+                        // Catches CRLF (or LFLF)
+                        if (this->data_pos < in.size() && parse_flag(in[this->data_pos]) == ParseFlags::NEWLINE)
+                            this->data_pos++;
 
-                    // Reset
-                    this->current_row = CSVRow(data_ptr, this->data_pos, fields->size());
-                    break;
+                        // End of record -> Write record
+                        this->push_field();
+                        this->push_row();
 
-                case ParseFlags::NOT_SPECIAL:
-                    this->parse_field();
-                    break;
-
-                case ParseFlags::QUOTE_ESCAPE_QUOTE:
-                    if (data_pos + 1 == in.size()) return this->current_row_start();
-                    else if (data_pos + 1 < in.size()) {
-                        auto next_ch = parse_flag(in[data_pos + 1]);
-                        if (next_ch >= ParseFlags::DELIMITER) {
-                            quote_escape = false;
-                            data_pos++;
-                            break;
-                        }
-                        else if (next_ch == ParseFlags::QUOTE) {
-                            // Case: Escaped quote
-                            data_pos += 2;
-                            this->field_length += 2;
-                            this->field_has_double_quote = true;
-                            break;
-                        }
-                    }
-                    
-                    // Case: Unescaped single quote => not strictly valid but we'll keep it
-                    this->field_length++;
-                    data_pos++;
-
-                    break;
-
-                default: // Quote (currently not quote escaped)
-                    if (this->field_length == 0) {
-                        quote_escape = true;
-                        data_pos++;
-                        if (field_start == UNINITIALIZED_FIELD && data_pos < in.size() && !ws_flag(in[data_pos]))
-                            field_start = (int)(data_pos - current_row_start());
+                        // Reset
+                        this->current_row = CSVRow(data_ptr, this->data_pos, fields->size());
                         break;
-                    }
 
-                    // Case: Unescaped quote
-                    this->field_length++;
-                    data_pos++;
+                    case ParseFlags::NOT_SPECIAL:
+                        this->parse_field();
+                        break;
 
-                    break;
+                    case ParseFlags::QUOTE_ESCAPE_QUOTE:
+                        if (data_pos + 1 == in.size()) return this->current_row_start();
+                        else if (data_pos + 1 < in.size()) {
+                            auto next_ch = parse_flag(in[data_pos + 1]);
+                            if (next_ch >= ParseFlags::DELIMITER) {
+                                quote_escape = false;
+                                data_pos++;
+                                break;
+                            }
+                            else if (next_ch == ParseFlags::QUOTE) {
+                                // Case: Escaped quote
+                                data_pos += 2;
+                                this->field_length += 2;
+                                this->field_has_double_quote = true;
+                                break;
+                            }
+                        }
+
+                        // Case: Unescaped single quote => not strictly valid but we'll keep it
+                        this->field_length++;
+                        data_pos++;
+
+                        break;
+
+                    default: // Quote (currently not quote escaped)
+                        if (this->field_length == 0) {
+                            quote_escape = true;
+                            data_pos++;
+                            if (field_start == UNINITIALIZED_FIELD && data_pos < in.size() && !ws_flag(in[data_pos]))
+                                field_start = (int)(data_pos - current_row_start());
+                            break;
+                        }
+
+                        // Case: Unescaped quote
+                        this->field_length++;
+                        data_pos++;
+
+                        break;
                 }
             }
 
@@ -7111,7 +7111,7 @@ namespace csv {
 
             // Parse
             this->current_row = CSVRow(this->data_ptr);
-            size_t remainder = this->parse();            
+            size_t remainder = this->parse();
 
             if (this->mmap_pos == this->source_size || no_chunk()) {
                 this->_eof = true;
@@ -7206,8 +7206,8 @@ namespace csv {
     CSV_INLINE void CSVFormat::assert_no_char_overlap()
     {
         auto delims = std::set<char>(
-            this->possible_delimiters.begin(), this->possible_delimiters.end()),
-            trims = std::set<char>(
+                this->possible_delimiters.begin(), this->possible_delimiters.end()),
+                trims = std::set<char>(
                 this->trim_chars.begin(), this->trim_chars.end());
 
         // Stores intersection of possible delimiters and trim characters
@@ -7215,9 +7215,9 @@ namespace csv {
 
         // Find which characters overlap, if any
         std::set_intersection(
-            delims.begin(), delims.end(),
-            trims.begin(), trims.end(),
-            std::back_inserter(intersection));
+                delims.begin(), delims.end(),
+                trims.begin(), trims.end(),
+                std::back_inserter(intersection));
 
         // Make sure quote character is not contained in possible delimiters
         // or whitespace characters
@@ -7228,8 +7228,8 @@ namespace csv {
 
         if (!intersection.empty()) {
             std::string err_msg = "There should be no overlap between the quote character, "
-                "the set of possible delimiters "
-                "and the set of whitespace characters. Offending characters: ";
+                                  "the set of possible delimiters "
+                                  "and the set of whitespace characters. Offending characters: ";
 
             // Create a pretty error message with the list of overlapping
             // characters
@@ -7331,8 +7331,8 @@ namespace csv {
             }
 
             return {
-                final_score,
-                header_row
+                    final_score,
+                    header_row
             };
         }
 
@@ -7346,7 +7346,7 @@ namespace csv {
 
             CSVFormat format;
             size_t max_score = 0,
-                header = 0;
+                    header = 0;
             char current_delim = delims[0];
 
             for (char cand_delim : delims) {
@@ -7398,7 +7398,7 @@ namespace csv {
      *  \snippet tests/test_read_csv.cpp CSVField Example
      *
      */
-	CSV_INLINE CSVReader::CSVReader(csv::string_view filename, CSVFormat format) : _format(format) {
+    CSV_INLINE CSVReader::CSVReader(csv::string_view filename, CSVFormat format) : _format(format) {
         auto head = internals::get_csv_head(filename);
         using Parser = internals::MmapParser;
 
@@ -7534,7 +7534,7 @@ namespace csv {
                 }
             }
             else if (this->records->front().size() != this->n_cols &&
-                this->_format.variable_column_policy != VariableColumnPolicy::KEEP) {
+                     this->_format.variable_column_policy != VariableColumnPolicy::KEEP) {
                 auto errored_row = this->records->pop_front();
 
                 if (this->_format.variable_column_policy == VariableColumnPolicy::THROW) {
@@ -7587,7 +7587,7 @@ namespace csv {
     /////////////////////////
 
     CSV_INLINE CSVReader::iterator::iterator(CSVReader* _daddy, CSVRow&& _row) :
-        daddy(_daddy) {
+            daddy(_daddy) {
         row = std::move(_row);
     }
 
@@ -7722,7 +7722,7 @@ namespace csv {
         // Trim out whitespace chars
         for (; start < this->sv.size() && this->sv[start] == ' '; start++);
         for (end = start; end < this->sv.size() && this->sv[end] != ' '; end++);
-        
+
         unsigned long long int value = 0;
 
         size_t digits = (end - start);
@@ -7734,44 +7734,44 @@ namespace csv {
             int digit = 0;
 
             switch (ch) {
-            case '0':
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7':
-            case '8':
-            case '9':
-                digit = static_cast<int>(ch - '0');
-                break;
-            case 'a':
-            case 'A':
-                digit = 10;
-                break;
-            case 'b':
-            case 'B':
-                digit = 11;
-                break;
-            case 'c':
-            case 'C':
-                digit = 12;
-                break;
-            case 'd':
-            case 'D':
-                digit = 13;
-                break;
-            case 'e':
-            case 'E':
-                digit = 14;
-                break;
-            case 'f':
-            case 'F':
-                digit = 15;
-                break;
-            default:
-                return false;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    digit = static_cast<int>(ch - '0');
+                    break;
+                case 'a':
+                case 'A':
+                    digit = 10;
+                    break;
+                case 'b':
+                case 'B':
+                    digit = 11;
+                    break;
+                case 'c':
+                case 'C':
+                    digit = 12;
+                    break;
+                case 'd':
+                case 'D':
+                    digit = 13;
+                    break;
+                case 'e':
+                case 'E':
+                    digit = 14;
+                    break;
+                case 'f':
+                case 'F':
+                    digit = 15;
+                    break;
+                default:
+                    return false;
             }
 
             value += digit * pow(16, base16_exponent);
@@ -7809,10 +7809,10 @@ namespace csv {
 
     CSV_INLINE HEDLEY_NON_NULL(2)
     CSVRow::iterator::iterator(const CSVRow* _reader, int _i)
-        : daddy(_reader), i(_i) {
+            : daddy(_reader), i(_i) {
         if (_i < (int)this->daddy->size())
             this->field = std::make_shared<CSVField>(
-                this->daddy->operator[](_i));
+                    this->daddy->operator[](_i));
         else
             this->field = nullptr;
     }
@@ -7823,11 +7823,11 @@ namespace csv {
 
     CSV_INLINE CSVRow::iterator::pointer CSVRow::iterator::operator->() const {
         // Using CSVField * as pointer type causes segfaults in MSVC debug builds
-        #ifdef _MSC_BUILD
+#ifdef _MSC_BUILD
         return this->field;
-        #else
+#else
         return this->field.get();
-        #endif
+#endif
     }
 
     CSV_INLINE CSVRow::iterator& CSVRow::iterator::operator++() {
@@ -7835,7 +7835,7 @@ namespace csv {
         this->i++;
         if (this->i < (int)this->daddy->size())
             this->field = std::make_shared<CSVField>(
-                this->daddy->operator[](i));
+                    this->daddy->operator[](i));
         else // Reached the end of row
             this->field = nullptr;
         return *this;
@@ -7852,7 +7852,7 @@ namespace csv {
         // Pre-decrement operator
         this->i--;
         this->field = std::make_shared<CSVField>(
-            this->daddy->operator[](this->i));
+                this->daddy->operator[](this->i));
         return *this;
     }
 
@@ -7862,7 +7862,7 @@ namespace csv {
         this->operator--();
         return temp;
     }
-    
+
     CSV_INLINE CSVRow::iterator CSVRow::iterator::operator+(difference_type n) const {
         // Allows for iterator arithmetic
         return CSVRow::iterator(this->daddy, i + (int)n);
@@ -7891,9 +7891,9 @@ namespace csv {
 
     The code is licensed under the [MIT
     License](http://opensource.org/licenses/MIT):
-    
+
     Copyright &copy; 2013-2015 Niels Lohmann.
-    
+
     Permission is hereby granted, free of charge, to any person
     obtaining a copy of this software and associated documentation files
     (the "Software"), to deal in the Software without restriction,
@@ -7901,10 +7901,10 @@ namespace csv {
     publish, distribute, sublicense, and/or sell copies of the Software,
     and to permit persons to whom the Software is furnished to do so,
     subject to the following conditions:
-    
+
     The above copyright notice and this permission notice shall be
     included in all copies or substantial portions of the Software.
-    
+
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -7933,29 +7933,29 @@ namespace csv {
             {
                 switch (c)
                 {
-                case '"':
-                case '\\':
-                case '\b':
-                case '\f':
-                case '\n':
-                case '\r':
-                case '\t':
-                {
-                    // from c (1 byte) to \x (2 bytes)
-                    result += 1;
-                    break;
-                }
-
-
-                default:
-                {
-                    if (c >= 0x00 && c <= 0x1f)
+                    case '"':
+                    case '\\':
+                    case '\b':
+                    case '\f':
+                    case '\n':
+                    case '\r':
+                    case '\t':
                     {
-                        // from c (1 byte) to \uxxxx (6 bytes)
-                        result += 5;
+                        // from c (1 byte) to \x (2 bytes)
+                        result += 1;
+                        break;
                     }
-                    break;
-                }
+
+
+                    default:
+                    {
+                        if (c >= 0x00 && c <= 0x1f)
+                        {
+                            // from c (1 byte) to \uxxxx (6 bytes)
+                            result += 5;
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -7979,86 +7979,86 @@ namespace csv {
             {
                 switch (c)
                 {
-                // quotation mark (0x22)
-                case '"':
-                {
-                    result[pos + 1] = '"';
-                    pos += 2;
-                    break;
-                }
-
-
-                // reverse solidus (0x5c)
-                case '\\':
-                {
-                    // nothing to change
-                    pos += 2;
-                    break;
-                }
-
-
-                // backspace (0x08)
-                case '\b':
-                {
-                    result[pos + 1] = 'b';
-                    pos += 2;
-                    break;
-                }
-
-
-                // formfeed (0x0c)
-                case '\f':
-                {
-                    result[pos + 1] = 'f';
-                    pos += 2;
-                    break;
-                }
-
-
-                // newline (0x0a)
-                case '\n':
-                {
-                    result[pos + 1] = 'n';
-                    pos += 2;
-                    break;
-                }
-
-
-                // carriage return (0x0d)
-                case '\r':
-                {
-                    result[pos + 1] = 'r';
-                    pos += 2;
-                    break;
-                }
-
-
-                // horizontal tab (0x09)
-                case '\t':
-                {
-                    result[pos + 1] = 't';
-                    pos += 2;
-                    break;
-                }
-
-
-                default:
-                {
-                    if (c >= 0x00 && c <= 0x1f)
+                    // quotation mark (0x22)
+                    case '"':
                     {
-                        // print character c as \uxxxx
-                        sprintf(&result[pos + 1], "u%04x", int(c));
-                        pos += 6;
-                        // overwrite trailing null character
-                        result[pos] = '\\';
+                        result[pos + 1] = '"';
+                        pos += 2;
+                        break;
                     }
-                    else
+
+
+                        // reverse solidus (0x5c)
+                    case '\\':
                     {
-                        // all other characters are added as-is
-                        result[pos++] = c;
+                        // nothing to change
+                        pos += 2;
+                        break;
                     }
-                    break;
-                }
+
+
+                        // backspace (0x08)
+                    case '\b':
+                    {
+                        result[pos + 1] = 'b';
+                        pos += 2;
+                        break;
+                    }
+
+
+                        // formfeed (0x0c)
+                    case '\f':
+                    {
+                        result[pos + 1] = 'f';
+                        pos += 2;
+                        break;
+                    }
+
+
+                        // newline (0x0a)
+                    case '\n':
+                    {
+                        result[pos + 1] = 'n';
+                        pos += 2;
+                        break;
+                    }
+
+
+                        // carriage return (0x0d)
+                    case '\r':
+                    {
+                        result[pos + 1] = 'r';
+                        pos += 2;
+                        break;
+                    }
+
+
+                        // horizontal tab (0x09)
+                    case '\t':
+                    {
+                        result[pos + 1] = 't';
+                        pos += 2;
+                        break;
+                    }
+
+
+                    default:
+                    {
+                        if (c >= 0x00 && c <= 0x1f)
+                        {
+                            // print character c as \uxxxx
+                            sprintf(&result[pos + 1], "u%04x", int(c));
+                            pos += 6;
+                            // overwrite trailing null character
+                            result[pos] = '\\';
+                        }
+                        else
+                        {
+                            // all other characters are added as-is
+                            result[pos++] = c;
+                        }
+                        break;
+                    }
                 }
             }
 
@@ -8081,7 +8081,7 @@ namespace csv {
 
         const size_t _n_cols = col_names.size();
         std::string ret = "{";
-        
+
         for (size_t i = 0; i < _n_cols; i++) {
             auto& col = col_names[i];
             auto field = this->operator[](col);
@@ -8091,7 +8091,7 @@ namespace csv {
 
             // Add quotes around strings but not numbers
             if (field.is_num())
-                 ret += internals::json_escape_string(field.get<csv::string_view>());
+                ret += internals::json_escape_string(field.get<csv::string_view>());
             else
                 ret += '"' + internals::json_escape_string(field.get<csv::string_view>()) + '"';
 
@@ -8149,19 +8149,19 @@ namespace csv {
      *  methods like get_mean(), get_counts(), etc... can be used to retrieve statistics.
      */
     CSV_INLINE CSVStat::CSVStat(csv::string_view filename, CSVFormat format) :
-        reader(filename, format) {
+            reader(filename, format) {
         this->calc();
     }
 
     /** Calculate statistics for a CSV stored in a std::stringstream */
     CSV_INLINE CSVStat::CSVStat(std::stringstream& stream, CSVFormat format) :
-        reader(stream, format) {
+            reader(stream, format) {
         this->calc();
     }
 
     /** Return current means */
     CSV_INLINE std::vector<long double> CSVStat::get_mean() const {
-        std::vector<long double> ret;        
+        std::vector<long double> ret;
         for (size_t i = 0; i < this->get_col_names().size(); i++) {
             ret.push_back(this->rolling_means[i]);
         }
@@ -8170,7 +8170,7 @@ namespace csv {
 
     /** Return current variances */
     CSV_INLINE std::vector<long double> CSVStat::get_variance() const {
-        std::vector<long double> ret;        
+        std::vector<long double> ret;
         for (size_t i = 0; i < this->get_col_names().size(); i++) {
             ret.push_back(this->rolling_vars[i]/(this->n[i] - 1));
         }
@@ -8179,7 +8179,7 @@ namespace csv {
 
     /** Return current mins */
     CSV_INLINE std::vector<long double> CSVStat::get_mins() const {
-        std::vector<long double> ret;        
+        std::vector<long double> ret;
         for (size_t i = 0; i < this->get_col_names().size(); i++) {
             ret.push_back(this->mins[i]);
         }
@@ -8188,7 +8188,7 @@ namespace csv {
 
     /** Return current maxes */
     CSV_INLINE std::vector<long double> CSVStat::get_maxes() const {
-        std::vector<long double> ret;        
+        std::vector<long double> ret;
         for (size_t i = 0; i < this->get_col_names().size(); i++) {
             ret.push_back(this->maxes[i]);
         }
@@ -8206,7 +8206,7 @@ namespace csv {
 
     /** Get data type counts for each column */
     CSV_INLINE std::vector<CSVStat::TypeCount> CSVStat::get_dtypes() const {
-        std::vector<TypeCount> ret;        
+        std::vector<TypeCount> ret;
         for (size_t i = 0; i < this->get_col_names().size(); i++) {
             ret.push_back(this->dtypes[i]);
         }
@@ -8253,13 +8253,13 @@ namespace csv {
         }
 
         if (!this->records.empty()) {
-          calc_chunk();
+            calc_chunk();
         }
     }
 
     CSV_INLINE void CSVStat::calc_worker(const size_t &i) {
         /** Worker thread for CSVStat::calc() which calculates statistics for one column.
-         * 
+         *
          *  @param[in] i Column index
          */
 
@@ -8297,7 +8297,7 @@ namespace csv {
          *  @param[in]  record Data observation
          *  @param[out] i      The column index that should be updated
          */
-        
+
         auto type = data.type();
         if (this->dtypes[i].find(type) !=
             this->dtypes[i].end()) {
@@ -8336,7 +8336,7 @@ namespace csv {
             this->mins[i] = x_n;
         if (std::isnan(this->maxes[i]))
             this->maxes[i] = x_n;
-        
+
         if (x_n < this->mins[i])
             this->mins[i] = x_n;
         else if (x_n > this->maxes[i])
@@ -8356,7 +8356,7 @@ namespace csv {
         long double delta2;
 
         current_n++;
-        
+
         if (current_n == 1) {
             current_rolling_mean = x_n;
         } else {
@@ -8455,9 +8455,9 @@ namespace csv {
      *  @param[in] format    Format of the CSV file
      */
     CSV_INLINE int get_col_pos(
-        csv::string_view filename,
-        csv::string_view col_name,
-        const CSVFormat& format) {
+            csv::string_view filename,
+            csv::string_view col_name,
+            const CSVFormat& format) {
         CSVReader reader(filename, format);
         return reader.index_of(col_name);
     }
@@ -8471,11 +8471,11 @@ namespace csv {
         for (auto it = reader.begin(); it != reader.end(); ++it);
 
         CSVFileInfo info = {
-            filename,
-            reader.get_col_names(),
-            format.get_delim(),
-            reader.n_rows(),
-            reader.get_col_names().size()
+                filename,
+                reader.get_col_names(),
+                format.get_delim(),
+                reader.n_rows(),
+                reader.get_col_names().size()
         };
 
         return info;

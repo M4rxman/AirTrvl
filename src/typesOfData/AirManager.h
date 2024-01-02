@@ -1,7 +1,11 @@
+#ifndef AIRMANAGER_H
+#define AIRMANAGER_H
+
 #include <iostream>
 #include <vector>
+#include <fstream>
+#include <sstream>
 #include "position.h"
-#include "../csv.hpp"
 
 struct Airport {
     std::string code;
@@ -17,41 +21,93 @@ struct Airline {
     std::string callsign;
     std::string country;
 };
-class AirManager{
 
+class AirManager {
 public:
     std::vector<Airport> airports;
     std::vector<Airline> airlines;
 
     bool readData() {
-        csv::CSVReader airportCSV("airports.csv");
-        airports.reserve(4000); // Set an appropriate initial capacity
-
-        Airport airport;
-        for (auto& row : airportCSV) {
-            airport.code = row["Code"].get<std::string>();
-            airport.name = row["Name"].get<std::string>();
-            airport.city = row["City"].get<std::string>();
-            airport.country = row["Country"].get<std::string>();
-            airport.position.latitude = row["Latitude"].get<double>();
-            airport.position.longitude = row["Longitude"].get<double>();
-            airports.push_back(airport);
+        if (!readAirports("airports.csv", airports)) {
+            std::cerr << "Error reading airports data." << std::endl;
+            return false;
         }
 
-        csv::CSVReader airlineCSV("airlines.csv");
-        airlines.reserve(500); // Set an appropriate initial capacity
-
-        Airline airline;
-        for (auto& row : airlineCSV) {
-            airline.code = row["Code"].get<std::string>();
-            airline.name = row["Name"].get<std::string>();
-            airline.callsign = row["Callsign"].get<std::string>();
-            airline.country = row["Country"].get<std::string>();
-            airlines.push_back(airline);
+        if (!readAirlines("airlines.csv", airlines)) {
+            std::cerr << "Error reading airlines data." << std::endl;
+            return false;
         }
 
-        // Now you have vectors 'airports' and 'airlines' filled with your CSV data
+        // Data read successfully
+        return true;
+    }
+
+private:
+    bool readAirports(const std::string& filename, std::vector<Airport>& data) {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Error opening file: " << filename << std::endl;
+            return false;
+        }
+
+        data.clear(); // Clear the vector before reading
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            Airport airport;
+
+            if (std::getline(iss, airport.code, ',') &&
+                std::getline(iss, airport.name, ',') &&
+                std::getline(iss, airport.city, ',') &&
+                std::getline(iss, airport.country, ',')) {
+
+                // Convert latitude and longitude from string to double
+                std::string latitudeStr, longitudeStr;
+                if (std::getline(iss, latitudeStr, ',') &&
+                    std::getline(iss, longitudeStr, ',')) {
+                    airport.position.latitude = std::stod(latitudeStr);
+                    airport.position.longitude = std::stod(longitudeStr);
+                    data.push_back(airport);
+                } else {
+                    std::cerr << "Error parsing latitude and longitude in line: " << line << std::endl;
+                }
+            } else {
+                std::cerr << "Error parsing line: " << line << std::endl;
+            }
+        }
+
+        file.close();
+        return true;
+    }
+
+    bool readAirlines(const std::string& filename, std::vector<Airline>& data) {
+        std::ifstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Error opening file: " << filename << std::endl;
+            return false;
+        }
+
+        data.clear(); // Clear the vector before reading
+
+        std::string line;
+        while (std::getline(file, line)) {
+            std::istringstream iss(line);
+            Airline airline;
+
+            if (std::getline(iss, airline.code, ',') &&
+                std::getline(iss, airline.name, ',') &&
+                std::getline(iss, airline.callsign, ',') &&
+                std::getline(iss, airline.country, ',')) {
+                data.push_back(airline);
+            } else {
+                std::cerr << "Error parsing line: " << line << std::endl;
+            }
+        }
+
+        file.close();
         return true;
     }
 };
 
+#endif // AIRMANAGER_H
