@@ -10,7 +10,6 @@ bool FlightManager::loadFlights(const std::string& filename) {
     if (!file.is_open()) {
         return false; // File not opened
     }
-
     // Clear existing flights if needed
     flights.clear();
 
