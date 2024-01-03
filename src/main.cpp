@@ -10,8 +10,8 @@ void displayAirportInformation(const AirManager& airManager) {
                   << "Name: " << airport.name << "\n"
                   << "City: " << airport.city << "\n"
                   << "Country: " << airport.country << "\n"
-                  << "Latitude: " << airport.position.latitude << "\n"
-                  << "Longitude: " << airport.position.longitude << "\n\n";
+                  << "Latitude: " << airport.position.str_latitude << "\n"
+                  << "Longitude: " << airport.position.str_longitude << "\n\n";
     }
 }
 

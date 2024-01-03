@@ -64,7 +64,7 @@ public:
                 // If not, add it and initialize the vector
                 adjacentMap[sourceAirport] = std::vector<std::string>();
             }
-
+/*
             // Check if the target airport is not already in the vector
             if (std::find(adjacentMap[sourceAirport].begin(), adjacentMap[sourceAirport].end(), targetAirport) == adjacentMap[sourceAirport].end()) {
                 // If not, add it to the vector
@@ -79,6 +79,7 @@ public:
 
             // Set the adjacent vertices for the airport in the graph
             graph.setAdjacentVertices(airport, adjacentAirports);
+        */
         }
     }
 
