@@ -5,7 +5,14 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
+/**
+ * @brief Loads flight data from a CSV file into the FlightManager.
+ *
+ * Reads flight data from a CSV file with the format: source,target,airline.
+ *
+ * @param filename The name of the CSV file containing flight data.
+ * @return True if the data is loaded successfully, false otherwise (including file not found or incorrect format).
+ */
 bool FlightManager::loadFlights(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {

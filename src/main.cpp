@@ -16,6 +16,16 @@ void displayAirportInformation(const AirManager& airManager) {
 }
 
 // Implement similar functions for displaying airline and flight information
+/**
+ * @brief The main function for initializing and loading data into the AirTravelGraph.
+ *
+ * This function creates an instance of AirTravelGraph, loads data from CSV files
+ * ('airports.csv', 'airlines.csv', 'flights.csv') into the graph, and handles errors if any occur.
+ *
+ * @return An integer representing the exit status:
+ *         - 0 if the data is successfully loaded.
+ *         - 1 if an error occurs while loading data from CSV files.
+ */
 
 int main() {
     AirManager airManager;
@@ -27,7 +37,6 @@ int main() {
         std::cerr << "Error loading airport and airline data." << std::endl;
         return 1;
     }
-
 
 
     // Populate the graph with data

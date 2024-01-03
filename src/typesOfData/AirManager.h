@@ -8,25 +8,32 @@
 #include "position.h"
 
 struct Airport {
-    std::string code;
-    std::string name;
-    std::string city;
-    std::string country;
-    Position position;
+    std::string code;       /**< Airport code. */
+    std::string name;       /**< Airport name. */
+    std::string city;       /**< Airport city. */
+    std::string country;    /**< Airport country. */
+    Position position;      /**< Airport position (latitude and longitude). */
 };
-
+/**
+ * @brief Structure representing an airline.
+ */
 struct Airline {
-    std::string code;
-    std::string name;
-    std::string callsign;
-    std::string country;
+    std::string code;       /**< Airline code. */
+    std::string name;       /**< Airline name. */
+    std::string callsign;   /**< Airline callsign. */
+    std::string country;    /**< Airline country. */
 };
-
+/**
+ * @brief Class managing airports and airlines data.
+ */
 class AirManager {
 public:
-    std::vector<Airport> airports;
-    std::vector<Airline> airlines;
-
+    std::vector<Airport> airports;  /**< Vector containing airport data. */
+    std::vector<Airline> airlines;  /**< Vector containing airline data. */
+    /**
+     * @brief Reads airports and airlines data from files.
+     * @return True if data read successfully, false otherwise.
+     */
     bool readData() {
         if (!readAirports("data/airports.csv", airports)) {
             std::cerr << "Error reading airports data." << std::endl;
@@ -43,6 +50,12 @@ public:
     }
 
 private:
+    /**
+* @brief Reads airport data from a CSV file.
+* @param filename The name of the file containing airport data.
+* @param data Vector to store the read airport data.
+* @return True if data read successfully, false otherwise.
+*/
     bool readAirports(const std::string& filename, std::vector<Airport>& data) {
         std::ifstream file(filename);
         if (!file.is_open()) {
@@ -74,6 +87,12 @@ private:
     }
 
     bool readAirlines(const std::string& filename, std::vector<Airline>& data) {
+        /**
+* @brief Reads airline data from a CSV file.
+* @param filename The name of the file containing airline data.
+* @param data Vector to store the read airline data.
+* @return True if data read successfully, false otherwise.
+*/
         std::ifstream file(filename);
         if (!file.is_open()) {
             std::cerr << "Error opening file: " << filename << std::endl;
